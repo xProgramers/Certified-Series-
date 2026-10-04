@@ -139,6 +139,12 @@ export const watchEntries = sqliteTable(
     watchedSeasons: text("watched_seasons", { mode: "json" }).$type<number[] | null>(),
     addedAt: integer("added_at", { mode: "timestamp_ms" }).notNull(),
     completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+    /**
+     * The exact moment the card got its certificate (completed with a rating,
+     * or every season marked again after a new one). completed_at only holds
+     * the day, so this orders cards finished on the same day.
+     */
+    certifiedAt: integer("certified_at", { mode: "timestamp_ms" }),
     ...timestamps,
   },
   (t) => [

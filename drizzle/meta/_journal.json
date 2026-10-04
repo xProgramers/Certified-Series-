@@ -22,6 +22,13 @@
       "when": 1791118052051,
       "tag": "0002_seasons",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791123256116,
+      "tag": "0003_certified_at",
+      "breakpoints": true
     }
   ]
 }

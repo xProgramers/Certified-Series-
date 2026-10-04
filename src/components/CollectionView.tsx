@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { cardDate, formatCollectionNumber, type CardData, type ContentType } from "@/lib/card-types";
+import { byMostRecent, formatCollectionNumber, type CardData, type ContentType } from "@/lib/card-types";
 import { ContentCard } from "./card/ContentCard";
 import { CardLightbox } from "./CardLightbox";
 
@@ -63,7 +63,7 @@ export function CollectionView({
     );
     if (sort === "rating") list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1) || b.collectionNumber - a.collectionNumber);
     else if (sort === "number") list.sort((a, b) => a.collectionNumber - b.collectionNumber);
-    else list.sort((a, b) => cardDate(b).localeCompare(cardDate(a)) || b.collectionNumber - a.collectionNumber);
+    else list.sort(byMostRecent);
     return list;
   }, [ofType, status, sort]);
 

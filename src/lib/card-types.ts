@@ -25,6 +25,8 @@ export type CardData = {
   reflection: string;
   addedAt: string; // ISO
   completedAt: string | null; // ISO
+  /** Exact moment the card was certified (completedAt only holds the day). */
+  certifiedAt?: string | null; // ISO
   collectionNumber: number;
   viewingNumber: number;
   ownerName: string;
@@ -62,6 +64,25 @@ export function formatRuntime(min: number) {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return h ? (m ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+}
+
+/**
+ * "Mais recentes": the most recently certified first, by the completion day on
+ * the card and then the exact moment of certification; works not certified
+ * (yet) after them, the most recently added first.
+ */
+export function byMostRecent(a: CardData, b: CardData) {
+  if (!!a.completedAt !== !!b.completedAt) return a.completedAt ? -1 : 1;
+  if (a.completedAt && b.completedAt) {
+    const day = b.completedAt.slice(0, 10).localeCompare(a.completedAt.slice(0, 10));
+    if (day) return day;
+    const at = (b.certifiedAt ?? b.completedAt).localeCompare(a.certifiedAt ?? a.completedAt);
+    if (at) return at;
+  } else {
+    const at = b.addedAt.localeCompare(a.addedAt);
+    if (at) return at;
+  }
+  return b.collectionNumber - a.collectionNumber;
 }
 
 /** Date shown on the card: completion, or when it joined the collection while in progress. */
