@@ -18,3 +18,7 @@ function imageUrl(path: string | null | undefined, size: ImageSize, kind: "poste
   if (path.startsWith("mock:")) return `/api/mock-poster/${path.slice(5)}?kind=${kind}`;
   return `/api/img?s=${size}&p=${encodeURIComponent(path)}`;
 }
+
+export function profileUrl(path: string | null | undefined) {
+  return imageUrl(path, "w185", "poster");
+}

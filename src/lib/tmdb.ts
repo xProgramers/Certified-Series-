@@ -1,6 +1,7 @@
 import "server-only";
 import type { ContentType } from "@/db/schema";
 import { MOCK_CATALOG, findMock, mockImagePath, searchMock, type MockTitle } from "./mock-catalog";
+import { MOCK_COLLECTIONS, MOCK_CREDITS } from "./mock-extras";
 
 export type SearchType = ContentType | "all";
 
@@ -276,6 +277,132 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
     if (e instanceof Error && e.message.startsWith("TMDB 404")) return null;
     throw e;
   }
+}
+
+export type Person = {
+  id: string;
+  name: string;
+  /** Character played (cast) or nothing (crew). */
+  role: string | null;
+  profilePath: string | null;
+};
+
+export type TitleExtras = {
+  /** Directors (movies) or creators (series). */
+  makers: Person[];
+  cast: Person[];
+  /** Other entries of the movie's franchise, in release order, including itself. */
+  franchise: { name: string; parts: TitleSummary[] } | null;
+  /** TMDB recommendations, falling back to similar titles. */
+  similar: TitleSummary[];
+};
+
+const CAST_LIMIT = 6;
+const SIMILAR_LIMIT = 12;
+
+type TmdbPerson = { id: number; name: string; profile_path: string | null };
+type TmdbCredits = {
+  cast: (TmdbPerson & { character?: string })[];
+  crew: (TmdbPerson & { job: string })[];
+};
+type TmdbAggregateCredits = {
+  cast: (TmdbPerson & { roles?: { character: string }[] })[];
+};
+type TmdbPage = { results: TmdbResult[] };
+
+const person = (p: TmdbPerson, role: string | null = null): Person => ({
+  id: String(p.id),
+  name: p.name,
+  role: role || null,
+  profilePath: p.profile_path,
+});
+
+/** Cast, director/creators, franchise and similar titles for the title page. */
+export async function getTitleExtras(type: ContentType, id: number): Promise<TitleExtras> {
+  if (!tmdbConfigured()) return mockExtras(type, id);
+
+  const pickSimilar = (rec?: TmdbPage, sim?: TmdbPage) => {
+    const pool = rec?.results.length ? rec.results : (sim?.results ?? []);
+    return pool
+      .filter((r) => r.poster_path)
+      .slice(0, SIMILAR_LIMIT)
+      .map((r) => fromResult({ ...r, genre_ids: r.genre_ids ?? [] }, type));
+  };
+
+  if (type === "movie") {
+    const d = await tmdb<{
+      belongs_to_collection: { id: number; name: string } | null;
+      credits?: TmdbCredits;
+      recommendations?: TmdbPage;
+      similar?: TmdbPage;
+    }>(`/movie/${id}`, { append_to_response: "credits,recommendations,similar" });
+
+    let franchise: TitleExtras["franchise"] = null;
+    if (d.belongs_to_collection) {
+      const c = await tmdb<{ name: string; parts: TmdbResult[] }>(`/collection/${d.belongs_to_collection.id}`).catch(
+        () => null,
+      );
+      if (c && c.parts.length > 1) {
+        franchise = {
+          name: c.name.replace(/^(Coleção|Collection)\s+(de\s+)?/i, "").replace(/\s*[-–:]?\s*(Coleção|Collection)\s*$/i, "") || c.name,
+          parts: c.parts
+            .map((r) => fromResult({ ...r, genre_ids: r.genre_ids ?? [] }, "movie"))
+            .sort((a, b) => (a.year ?? 9999) - (b.year ?? 9999)),
+        };
+      }
+    }
+    const inFranchise = new Set(franchise?.parts.map((p) => p.id));
+    return {
+      makers: (d.credits?.crew ?? []).filter((c) => c.job === "Director").map((c) => person(c)),
+      cast: (d.credits?.cast ?? []).slice(0, CAST_LIMIT).map((c) => person(c, c.character)),
+      franchise,
+      similar: pickSimilar(d.recommendations, d.similar).filter((s) => !inFranchise.has(s.id)),
+    };
+  }
+
+  const d = await tmdb<{
+    created_by: TmdbPerson[];
+    aggregate_credits?: TmdbAggregateCredits;
+    recommendations?: TmdbPage;
+    similar?: TmdbPage;
+  }>(`/tv/${id}`, { append_to_response: "aggregate_credits,recommendations,similar" });
+  return {
+    makers: d.created_by.map((c) => person(c)),
+    cast: (d.aggregate_credits?.cast ?? []).slice(0, CAST_LIMIT).map((c) => person(c, c.roles?.[0]?.character)),
+    franchise: null,
+    similar: pickSimilar(d.recommendations, d.similar),
+  };
+}
+
+function mockExtras(type: ContentType, id: number): TitleExtras {
+  const self = findMock(type, id);
+  const credits = type === "movie" ? MOCK_CREDITS[id] : undefined;
+  const collection = type === "movie" ? MOCK_COLLECTIONS.find((c) => c.parts.includes(id)) : undefined;
+  const franchise = collection
+    ? {
+        name: collection.name,
+        parts: collection.parts
+          .map((p) => findMock("movie", p))
+          .filter((m): m is MockTitle => Boolean(m))
+          .map(fromMock),
+      }
+    : null;
+  const exclude = new Set(collection?.parts ?? [id]);
+  // Similar = most shared genres, then most recent
+  const similar = self
+    ? MOCK_CATALOG.filter((m) => m.type === type && !exclude.has(m.id))
+        .map((m) => ({ m, score: m.genres.filter((g) => self.genres.includes(g)).length }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score || b.m.firstAirYear - a.m.firstAirYear)
+        .slice(0, SIMILAR_LIMIT)
+        .map((x) => fromMock(x.m))
+    : [];
+  return {
+    makers: (credits?.directors ?? []).map((name) => ({ id: name, name, role: null, profilePath: null })),
+    cast: (credits?.cast ?? []).map(([name, role]) => ({ id: name, name, role, profilePath: null })),
+    franchise,
+    similar,
+  };
 }
 
 /** Trending titles for the search page's empty state. */
