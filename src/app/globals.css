@@ -1,26 +1,168 @@
 @import "tailwindcss";
+@import "../components/card/series-card.css";
+
+@theme {
+  --color-ink-0: #0a0a0b;
+  --color-ink-1: #0f0f11;
+  --color-ink-2: #151517;
+  --color-ink-3: #1c1c1f;
+  --color-ink-4: #26262a;
+  --color-line: rgb(255 255 255 / 0.08);
+  --color-line-strong: rgb(255 255 255 / 0.16);
+  --color-paper: #ece7df;
+  --color-mute: #9a948b;
+  --color-dim: #6b665f;
+  --color-gold: #c9b07a;
+  --color-danger: #e0796b;
+
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-instrument), "Times New Roman", serif;
+
+  --ease-cinema: cubic-bezier(0.2, 0.7, 0.1, 1);
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-ink-0);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 50% -200px, rgb(201 176 122 / 0.06), transparent 70%),
+    var(--color-ink-0);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgb(201 176 122 / 0.35);
+  color: #fff;
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+  }
+}
+
+/* Film grain over the whole app — barely there, adds depth to flat darks */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.9s var(--ease-cinema) both;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade 0.6s ease both;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-ink-3);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.04), transparent);
+  animation: shimmer 1.6s infinite;
+}
+
+/* Range input for the rating */
+.rating-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.rating-range::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-gold) var(--fill, 50%), rgb(255 255 255 / 0.14) var(--fill, 50%));
+}
+.rating-range::-moz-range-track {
+  height: 2px;
+  background: rgb(255 255 255 / 0.14);
+}
+.rating-range::-moz-range-progress {
+  height: 2px;
+  background: var(--color-gold);
+}
+.rating-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -8px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  border: 4px solid var(--color-ink-1);
+  box-shadow: 0 0 0 1px var(--color-gold);
+}
+.rating-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--color-paper);
+  border: 4px solid var(--color-ink-1);
+  box-shadow: 0 0 0 1px var(--color-gold);
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .fade-in {
+    animation: none;
+  }
 }

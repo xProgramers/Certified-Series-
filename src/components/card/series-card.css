@@ -1,0 +1,443 @@
+/*
+ * SERIES CARD — the product inside the product.
+ * Everything is sized in container units (cqw) so the card scales as one
+ * graphic piece: identical composition at 220px in a grid, 420px in a
+ * lightbox or 1080px in an exported PNG.
+ * Ratio 5:8 — close to a one-sheet poster, tall enough for the reflection.
+ */
+.sc-frame {
+  container-type: inline-size;
+  width: 100%;
+  aspect-ratio: 5 / 8;
+  position: relative;
+}
+
+.sc {
+  --accent: #c9b07a;
+  --base: #121110;
+  --glow: #4a3f2c;
+  --paper: #f3eee6;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 3.2cqw;
+  background: var(--base);
+  color: var(--paper);
+  isolation: isolate;
+  box-shadow:
+    0 0.4cqw 1cqw rgb(0 0 0 / 0.35),
+    0 6cqw 14cqw -4cqw rgb(0 0 0 / 0.7);
+  font-family: var(--font-sans);
+}
+
+/* ——— Poster ——— */
+.sc-poster {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 122cqw;
+  overflow: hidden;
+  z-index: 0;
+}
+.sc-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+  transform: scale(1.001);
+  transition: transform 1.6s cubic-bezier(0.2, 0.7, 0.1, 1);
+  display: block;
+}
+.sc-poster-empty {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(80cqw 60cqw at 50% 30%, var(--glow), transparent 70%),
+    var(--base);
+}
+
+/* Fade the poster into the plate, tint the junction with the poster's own colour,
+   and crush the top edge so the catalogue number always reads. */
+.sc-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0) 18%),
+    linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--base) 35%, transparent) 42%, color-mix(in srgb, var(--base) 82%, transparent) 56%, var(--base) 67%, var(--base) 100%),
+    radial-gradient(120cqw 90cqw at 50% 32%, transparent 55%, rgb(0 0 0 / 0.45) 100%);
+}
+.sc-atmos {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(90cqw 40cqw at 20% 92%, color-mix(in srgb, var(--glow) 55%, transparent), transparent 70%);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+}
+.sc-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 40cqw 40cqw;
+}
+.sc-edge {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 max(1px, 0.25cqw) rgb(255 255 255 / 0.07),
+    inset 0 0.3cqw 0 rgb(255 255 255 / 0.05);
+}
+
+/* ——— Top rail ——— */
+.sc-rail {
+  position: absolute;
+  z-index: 3;
+  top: 5.5cqw;
+  left: 6cqw;
+  right: 6cqw;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.sc-no {
+  font-family: var(--font-mono);
+  font-size: 2.5cqw;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgb(243 238 230 / 0.82);
+  display: flex;
+  flex-direction: column;
+  gap: 1.4cqw;
+}
+.sc-no b {
+  font-weight: 500;
+  font-size: 4.2cqw;
+  letter-spacing: 0.12em;
+  color: var(--paper);
+}
+.sc-no-rule {
+  width: 7cqw;
+  height: max(1px, 0.25cqw);
+  background: var(--accent);
+}
+
+/* COMPLETED stamp */
+.sc-stamp {
+  width: 19cqw;
+  height: 19cqw;
+  color: var(--accent);
+  filter: drop-shadow(0 0.6cqw 1.6cqw rgb(0 0 0 / 0.5));
+}
+.sc-stamp svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ——— Plate (content stack, grows upward from the bottom) ——— */
+.sc-plate {
+  position: absolute;
+  z-index: 3;
+  left: 6cqw;
+  right: 6cqw;
+  bottom: 5cqw;
+  display: flex;
+  flex-direction: column;
+}
+.sc-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 2.3cqw;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2.2cqw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sc-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--title-size, 11.5cqw);
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-bottom: 0.4cqw;
+  text-shadow: 0 0.4cqw 3cqw rgb(0 0 0 / 0.45);
+}
+.sc-meta span + span::before {
+  content: "·";
+  margin-right: 2cqw;
+  color: rgb(243 238 230 / 0.35);
+}
+.sc-meta {
+  margin-top: 2.4cqw;
+  font-family: var(--font-mono);
+  font-size: 2.3cqw;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(243 238 230 / 0.55);
+  display: flex;
+  gap: 2cqw;
+}
+
+/* Rating */
+.sc-rating {
+  margin-top: 4.5cqw;
+  padding-top: 3.6cqw;
+  border-top: max(1px, 0.2cqw) solid rgb(243 238 230 / 0.12);
+  display: flex;
+  align-items: flex-end;
+  gap: 4cqw;
+}
+.sc-score {
+  display: flex;
+  align-items: baseline;
+  gap: 1cqw;
+  line-height: 0.8;
+}
+.sc-score b {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 15cqw;
+  letter-spacing: -0.03em;
+}
+.sc-score span {
+  font-family: var(--font-mono);
+  font-size: 2.6cqw;
+  letter-spacing: 0.1em;
+  color: rgb(243 238 230 / 0.45);
+}
+.sc-scale {
+  flex: 1;
+  padding-bottom: 1.2cqw;
+}
+.sc-scale-label {
+  font-family: var(--font-mono);
+  font-size: 2cqw;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgb(243 238 230 / 0.42);
+  margin-bottom: 1.6cqw;
+  display: flex;
+  justify-content: space-between;
+}
+.sc-bars {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 0.9cqw;
+}
+.sc-bar {
+  height: 1.1cqw;
+  border-radius: 0.3cqw;
+  background: rgb(243 238 230 / 0.12);
+  overflow: hidden;
+  position: relative;
+}
+.sc-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  box-shadow: 0 0 2cqw color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* Reflection */
+.sc-reflection {
+  margin-top: 4.4cqw;
+  position: relative;
+  padding-left: 4.6cqw;
+}
+.sc-reflection::before {
+  content: "\201C";
+  position: absolute;
+  left: -0.6cqw;
+  top: -1.6cqw;
+  font-family: var(--font-serif);
+  font-size: 9cqw;
+  line-height: 1;
+  color: var(--accent);
+}
+.sc-reflection p {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 3.9cqw;
+  line-height: 1.32;
+  color: rgb(243 238 230 / 0.88);
+  display: -webkit-box;
+  -webkit-line-clamp: var(--reflection-lines, 4);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sc-reflection.is-empty p {
+  color: rgb(243 238 230 / 0.35);
+}
+
+/* Footer */
+.sc-foot {
+  margin-top: 5cqw;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 2.1cqw;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgb(243 238 230 / 0.5);
+}
+.sc-foot strong {
+  font-weight: 500;
+  color: rgb(243 238 230 / 0.85);
+}
+.sc-mark {
+  display: flex;
+  align-items: center;
+  gap: 1.4cqw;
+}
+.sc-mark svg {
+  width: 2.6cqw;
+  height: 2.6cqw;
+  color: var(--accent);
+}
+
+/* ——— Favorite: a single gilded hairline and a star in the rail ——— */
+.sc.is-favorite .sc-edge {
+  box-shadow:
+    inset 0 0 0 max(1px, 0.3cqw) rgb(214 186 122 / 0.75),
+    inset 0 0 0 max(2px, 1.4cqw) rgb(0 0 0 / 0.25),
+    inset 0 0 0 max(2.5px, 1.6cqw) rgb(214 186 122 / 0.22);
+}
+.sc-fav {
+  font-family: var(--font-mono);
+  font-size: 2.2cqw;
+  letter-spacing: 0.3em;
+  color: #d6ba7a;
+  display: flex;
+  align-items: center;
+  gap: 1.2cqw;
+}
+
+/* ——— Interaction (grid) ——— */
+.sc-sheen {
+  position: absolute;
+  inset: -20%;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.07) 48%, rgb(255 255 255 / 0.02) 52%, transparent 60%);
+  transform: translateX(-60%);
+  opacity: 0;
+}
+.sc-interactive {
+  transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.1, 1);
+}
+.sc-interactive .sc {
+  transition: box-shadow 0.9s cubic-bezier(0.2, 0.7, 0.1, 1);
+}
+@media (hover: hover) {
+  .sc-interactive:hover {
+    transform: translateY(-0.6%);
+  }
+  .sc-interactive:hover .sc-poster img {
+    transform: scale(1.035);
+  }
+  .sc-interactive:hover .sc-sheen {
+    opacity: 1;
+    transform: translateX(60%);
+    transition: transform 1.4s cubic-bezier(0.2, 0.7, 0.1, 1), opacity 0.3s;
+  }
+  .sc-interactive:hover .sc {
+    box-shadow:
+      0 0.4cqw 1cqw rgb(0 0 0 / 0.35),
+      0 10cqw 20cqw -6cqw rgb(0 0 0 / 0.8),
+      0 0 0 max(1px, 0.25cqw) color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+}
+.sc-interactive:focus-visible {
+  outline: none;
+}
+.sc-interactive:focus-visible .sc {
+  box-shadow:
+    0 0 0 2px var(--color-ink-0),
+    0 0 0 4px color-mix(in srgb, var(--accent) 80%, white);
+}
+
+/* ——— Reveal: "one more work joined the collection" ——— */
+@keyframes sc-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(5%) scale(0.96);
+    filter: blur(10px) brightness(0.6);
+  }
+  60% {
+    filter: blur(0) brightness(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+@keyframes sc-sheen-once {
+  0% {
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(70%);
+  }
+}
+@keyframes sc-stamp-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.5) rotate(-24deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.sc-reveal {
+  animation: sc-reveal 1.3s cubic-bezier(0.2, 0.7, 0.1, 1) both;
+}
+.sc-reveal .sc-sheen {
+  animation: sc-sheen-once 1.6s 0.9s cubic-bezier(0.3, 0.6, 0.2, 1) both;
+}
+.sc-reveal .sc-stamp {
+  animation: sc-stamp-in 0.7s 1.05s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sc-reveal,
+  .sc-reveal .sc-sheen,
+  .sc-reveal .sc-stamp {
+    animation: none;
+  }
+  .sc-interactive,
+  .sc-poster img {
+    transition: none;
+  }
+}
+
+/* Export: no outer shadow (it would be clipped), no hover/reveal state */
+.sc-export .sc {
+  box-shadow: none;
+}
+.sc-export .sc-sheen,
+.sc-export-story .sc-sheen {
+  display: none;
+}
