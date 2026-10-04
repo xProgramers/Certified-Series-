@@ -10,7 +10,7 @@ O perfil é uma coleção cinematográfica desses cards. **O card é o produto.*
 ```bash
 npm install
 cp .env.example .env.local      # defina AUTH_SECRET (openssl rand -base64 48)
-npm run db:push                 # cria o banco SQLite em ./data
+npm run db:migrate              # cria o banco SQLite em ./data
 npm run db:seed                 # opcional: coleção demo  → usuário "luan", senha "certified"
 npm run dev                     # http://localhost:3000
 ```
@@ -78,9 +78,11 @@ scripts/seed.ts          coleção demo
 
 ## Deploy (Vercel + Turso)
 
-1. `turso db create certified-series` e gere um token.
-2. Na Vercel, defina `DATABASE_URL` (libsql://…), `DATABASE_AUTH_TOKEN`, `AUTH_SECRET` e `TMDB_READ_TOKEN`.
-3. `npm run db:push` apontando para o Turso.
+1. Crie o banco: `turso db create certified-series` e um token **com acesso total**: `turso db tokens create certified-series`.
+2. Na Vercel, defina `DATABASE_URL` (libsql://…), `DATABASE_AUTH_TOKEN`, `AUTH_SECRET` e, quando tiver, `TMDB_READ_TOKEN`.
+   A integração Turso da Vercel também funciona: ela define `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN`, que o app lê como alternativa.
+3. O build (`vercel.json`) roda `npm run db:migrate` antes do `next build`, então as tabelas são criadas e atualizadas sozinhas.
+4. Opcional: `npm run db:seed` com essas variáveis cria a coleção demo.
 
 ## Próximos passos sugeridos
 
