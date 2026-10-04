@@ -7,12 +7,10 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "../src/db/schema";
+import { dbAuthToken, dbUrl } from "../src/db/url";
 import { MOCK_CATALOG } from "../src/lib/mock-catalog";
 
-const client = createClient({
-  url: process.env.DATABASE_URL ?? "file:./data/certified.db",
-  authToken: process.env.DATABASE_AUTH_TOKEN || undefined,
-});
+const client = createClient({ url: dbUrl(), authToken: dbAuthToken() });
 const db = drizzle(client, { schema });
 
 const ENTRIES: [number, number, string, string, boolean?][] = [
