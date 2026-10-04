@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CollectionView } from "@/components/CollectionView";
 import { getCurrentUser } from "@/lib/auth";
@@ -12,6 +13,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: user ? `${user.displayName} — coleção` : "Perfil" };
 }
 
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
 export default async function ProfilePage({ params, searchParams }: Props) {
   const { username } = await params;
   const { new: highlight } = await searchParams;
@@ -20,41 +23,40 @@ export default async function ProfilePage({ params, searchParams }: Props) {
 
   const isOwner = viewer?.id === user.id;
   const cards = await getCollection(user.id, { includePrivate: isOwner });
-  const stats = computeStats(cards);
+  const s = computeStats(cards);
 
-  const statItems = [
-    ["Nota média", stats.average != null ? stats.average.toFixed(1) : "—"],
-    ["Gênero mais visto", stats.topGenre ?? "—"],
-    ["Temporadas", String(stats.seasons)],
-    ["Favoritas", String(stats.favorites)],
-    ["Obras-primas", String(stats.masterpieces)],
-  ];
+  // Numbers stay secondary: one quiet line, the collection is the page
+  const line = [
+    plural(s.total, "obra", "obras"),
+    plural(s.series, "série", "séries"),
+    plural(s.movies, "filme", "filmes"),
+    plural(s.certified, "certificada", "certificadas"),
+    s.notCertified ? plural(s.notCertified, "não certificada", "não certificadas") : null,
+    s.inProgress ? `${s.inProgress} em andamento` : null,
+  ].filter(Boolean);
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 pb-32 sm:px-8">
-      <header className="relative flex flex-col gap-10 pb-10 pt-12 sm:pt-16 lg:flex-row lg:items-end lg:justify-between">
-        <div className="rise">
-          <p className="eyebrow">
-            Repertório de @{user.username}
-          </p>
-          <h1 className="mt-4 font-serif text-[clamp(3.5rem,9vw,7.5rem)] leading-[0.85] tracking-[-0.03em]">
-            {user.displayName}
-          </h1>
-          <p className="mt-5 max-w-xl font-serif text-2xl italic leading-snug text-mute">
-            <span className="not-italic text-paper">{stats.total}</span>{" "}
-            {stats.total === 1 ? "série concluída" : "séries concluídas"}
-            {user.bio ? <span className="text-dim"> — {user.bio}</span> : null}
-          </p>
+      <header className="flex flex-col gap-6 pb-10 pt-10 sm:flex-row sm:items-end sm:justify-between sm:pb-14 sm:pt-16">
+        <div className="rise min-w-0">
+          <h1 className="font-serif text-[clamp(2.8rem,7vw,5.5rem)] leading-[0.9] tracking-[-0.03em]">{user.displayName}</h1>
+          {user.bio && <p className="mt-3 max-w-xl font-serif text-xl italic leading-snug text-mute">{user.bio}</p>}
+          {s.total > 0 && (
+            <p className="mt-4 font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-dim sm:text-[11px] sm:tracking-[0.18em]">
+              {line.join(" · ")}
+            </p>
+          )}
         </div>
-        {stats.total > 0 && (
-          <dl className="rise grid grid-cols-2 gap-x-10 gap-y-5 sm:flex sm:flex-wrap lg:justify-end lg:pb-2" style={{ animationDelay: "120ms" }}>
-            {statItems.map(([k, v]) => (
-              <div key={k} className="min-w-0">
-                <dt className="font-mono text-[10px] uppercase tracking-[0.28em] text-dim">{k}</dt>
-                <dd className="mt-1.5 font-serif text-2xl leading-none text-paper/90">{v}</dd>
-              </div>
-            ))}
-          </dl>
+        {isOwner && cards.length > 0 && (
+          <Link
+            href="/search"
+            className="rise inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-paper px-5 py-2.5 text-sm text-ink-0 transition-colors hover:bg-white sm:self-auto"
+          >
+            <svg viewBox="0 0 16 16" className="h-3 w-3" aria-hidden>
+              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            Adicionar obra
+          </Link>
         )}
       </header>
 

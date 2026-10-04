@@ -1,5 +1,5 @@
 /*
- * SERIES CARD — the product inside the product.
+ * CONTENT CARD (series & movies) — the product inside the product.
  * Everything is sized in container units (cqw) so the card scales as one
  * graphic piece: identical composition at 220px in a grid, 420px in a
  * lightbox or 1080px in an exported PNG.
@@ -28,6 +28,17 @@
     0 0.4cqw 1cqw rgb(0 0 0 / 0.35),
     0 6cqw 14cqw -4cqw rgb(0 0 0 / 0.7);
   font-family: var(--font-sans);
+  /* The only state change the card has: colour coming back on completion */
+  transition: filter 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ——— States ———
+   In progress: the same card, without life — black & white, slightly dimmed. */
+.sc.is-progress {
+  filter: grayscale(1) brightness(0.86) contrast(1.04);
+}
+.sc.is-progress .sc-score b {
+  color: rgb(243 238 230 / 0.5);
 }
 
 /* ——— Poster ——— */
@@ -422,6 +433,9 @@
   animation: sc-stamp-in 0.7s 1.05s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 @media (prefers-reduced-motion: reduce) {
+  .sc {
+    transition: none;
+  }
   .sc-reveal,
   .sc-reveal .sc-sheen,
   .sc-reveal .sc-stamp {

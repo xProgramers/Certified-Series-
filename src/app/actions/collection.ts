@@ -4,15 +4,20 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db, schema } from "@/db";
+import { CONTENT_TYPES, type ContentType } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
-import type { CardData } from "@/lib/card-types";
-import { getEntry, nextCollectionNumber, nextViewingNumber, upsertSeries } from "@/lib/data";
-import { getSeries } from "@/lib/tmdb";
+import { certificationFor, titleHref, type CardData } from "@/lib/card-types";
+import { getEntry, nextCollectionNumber, nextViewingNumber, upsertTitle } from "@/lib/data";
+import { getTitle } from "@/lib/tmdb";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const hex = z.string().regex(/^#[0-9a-f]{6}$/i);
 const paletteSchema = z.object({ accent: hex, base: hex, glow: hex }).nullable();
+const contentRef = {
+  contentType: z.enum(CONTENT_TYPES),
+  contentId: z.number().int().positive(),
+};
 
 const entryFields = {
   rating: z
@@ -22,7 +27,7 @@ const entryFields = {
     .refine((v) => Number.isInteger(v * 2), "A nota usa passos de 0.5."),
   reflection: z.string().trim().max(600, "A reflexão pode ter até 600 caracteres."),
   isPublic: z.boolean(),
-  watchedAt: z
+  completedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .refine((d) => {
@@ -31,54 +36,160 @@ const entryFields = {
     }, "Data inválida."),
 };
 
-const completeSchema = z.object({
-  seriesId: z.number().int().positive(),
-  palette: paletteSchema,
-  ...entryFields,
-});
+type EntryFields = z.infer<z.ZodObject<typeof entryFields>>;
 
-export async function completeSeries(input: z.input<typeof completeSchema>): Promise<Result<CardData>> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "Entre na sua conta para criar cards." };
-  const parsed = completeSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
-  const v = parsed.data;
+/** The columns a rating writes. Certification is always derived here, on the server. */
+function ratedColumns(v: EntryFields) {
+  return {
+    status: "completed" as const,
+    ratingHalves: Math.round(v.rating * 2),
+    certificationStatus: certificationFor(v.rating),
+    reflection: v.reflection,
+    isPublic: v.isPublic,
+    completedAt: new Date(v.completedAt + "T12:00:00Z"),
+  };
+}
 
-  // Metadata always comes from TMDB on the server, never from the client
-  const detail = await getSeries(v.seriesId);
-  if (!detail) return { ok: false, error: "Série não encontrada." };
-  await upsertSeries(detail);
+function revalidate(username: string, type: ContentType, id: number) {
+  revalidatePath(`/u/${username}`);
+  revalidatePath(titleHref(type, id));
+  revalidatePath("/search");
+}
 
-  const id = crypto.randomUUID();
-  // Retry once in case two completions race for the same collection number
+/** Metadata always comes from TMDB on the server, never from the client. */
+async function cacheTitle(type: ContentType, id: number) {
+  const detail = await getTitle(type, id);
+  if (!detail) return false;
+  await upsertTitle(detail);
+  return true;
+}
+
+/** Inserts a new entry with the next N°, retrying once if two inserts race for it. */
+async function insertEntry(
+  userId: string,
+  type: ContentType,
+  id: number,
+  extra: Partial<typeof schema.watchEntries.$inferInsert>,
+) {
+  const entryId = crypto.randomUUID();
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       await db.insert(schema.watchEntries).values({
-        id,
-        userId: user.id,
-        seriesId: v.seriesId,
-        collectionNumber: await nextCollectionNumber(user.id),
-        viewingNumber: await nextViewingNumber(user.id, v.seriesId),
-        ratingHalves: Math.round(v.rating * 2),
-        reflection: v.reflection,
-        isPublic: v.isPublic,
-        palette: v.palette,
-        watchedAt: new Date(v.watchedAt + "T12:00:00Z"),
+        id: entryId,
+        userId,
+        contentType: type,
+        contentId: id,
+        collectionNumber: await nextCollectionNumber(userId),
+        viewingNumber: await nextViewingNumber(userId, type, id),
+        addedAt: new Date(),
+        ...extra,
       });
       break;
     } catch (e) {
       if (attempt === 1) throw e;
     }
   }
+  return entryId;
+}
 
-  revalidatePath(`/u/${user.username}`);
-  revalidatePath(`/series/${v.seriesId}`);
-  const card = await getEntry(id);
+function findInProgress(userId: string, type: ContentType, id: number) {
+  return db.query.watchEntries.findFirst({
+    where: and(
+      eq(schema.watchEntries.userId, userId),
+      eq(schema.watchEntries.contentType, type),
+      eq(schema.watchEntries.contentId, id),
+      eq(schema.watchEntries.status, "in_progress"),
+    ),
+    columns: { id: true },
+  });
+}
+
+const addSchema = z.object(contentRef);
+
+/** Adds a work to the collection right away, in progress (black & white card, no certification). */
+export async function addToCollection(input: z.input<typeof addSchema>): Promise<Result<CardData>> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Entre na sua conta para montar sua coleção." };
+  const parsed = addSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Obra inválida." };
+  const { contentType: type, contentId: id } = parsed.data;
+
+  const existing = await findInProgress(user.id, type, id);
+  if (existing) {
+    const card = await getEntry(existing.id);
+    return card ? { ok: true, data: card } : { ok: false, error: "Erro ao adicionar." };
+  }
+  if (!(await cacheTitle(type, id))) return { ok: false, error: "Obra não encontrada." };
+
+  let entryId: string;
+  try {
+    entryId = await insertEntry(user.id, type, id, { status: "in_progress" });
+  } catch {
+    // The one-in-progress index caught a double click
+    const again = await findInProgress(user.id, type, id);
+    if (!again) return { ok: false, error: "Erro ao adicionar." };
+    entryId = again.id;
+  }
+
+  revalidate(user.username, type, id);
+  const card = await getEntry(entryId);
+  return card ? { ok: true, data: card } : { ok: false, error: "Erro ao adicionar." };
+}
+
+const completeSchema = z.object({
+  /** The in-progress entry being finished; omit to add and complete in one step ("Já assisti"). */
+  entryId: z.string().uuid().optional(),
+  ...contentRef,
+  palette: paletteSchema,
+  ...entryFields,
+});
+
+/** Completes a work with rating + reflection. The card gains colour and its certification. */
+export async function completeEntry(input: z.input<typeof completeSchema>): Promise<Result<CardData>> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Entre na sua conta para criar cards." };
+  const parsed = completeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const v = parsed.data;
+  const { contentType: type, contentId: id } = v;
+
+  let entryId = v.entryId;
+  if (entryId) {
+    const res = await db
+      .update(schema.watchEntries)
+      .set({ ...ratedColumns(v), palette: v.palette })
+      .where(
+        and(
+          eq(schema.watchEntries.id, entryId),
+          eq(schema.watchEntries.userId, user.id),
+          eq(schema.watchEntries.status, "in_progress"),
+        ),
+      )
+      .returning({ id: schema.watchEntries.id });
+    if (!res.length) return { ok: false, error: "Esta obra não está em andamento na sua coleção." };
+  } else {
+    if (!(await cacheTitle(type, id))) return { ok: false, error: "Obra não encontrada." };
+    // Finishing something already in progress completes that entry instead of duplicating it
+    const open = await findInProgress(user.id, type, id);
+    if (open) {
+      entryId = open.id;
+      await db
+        .update(schema.watchEntries)
+        .set({ ...ratedColumns(v), palette: v.palette })
+        .where(eq(schema.watchEntries.id, open.id));
+    } else {
+      entryId = await insertEntry(user.id, type, id, { ...ratedColumns(v), palette: v.palette });
+    }
+  }
+
+  revalidate(user.username, type, id);
+  const card = await getEntry(entryId);
   return card ? { ok: true, data: card } : { ok: false, error: "Erro ao criar o card." };
 }
 
 const updateSchema = z.object({ entryId: z.string().uuid(), ...entryFields });
 
+/** Edits the rating/reflection of a completed card; the certification follows the new rating. */
 export async function updateEntry(input: z.input<typeof updateSchema>): Promise<Result<CardData>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Sessão expirada." };
@@ -88,18 +199,18 @@ export async function updateEntry(input: z.input<typeof updateSchema>): Promise<
 
   const res = await db
     .update(schema.watchEntries)
-    .set({
-      ratingHalves: Math.round(v.rating * 2),
-      reflection: v.reflection,
-      isPublic: v.isPublic,
-      watchedAt: new Date(v.watchedAt + "T12:00:00Z"),
-    })
-    .where(and(eq(schema.watchEntries.id, v.entryId), eq(schema.watchEntries.userId, user.id)))
-    .returning({ seriesId: schema.watchEntries.seriesId });
+    .set(ratedColumns(v))
+    .where(
+      and(
+        eq(schema.watchEntries.id, v.entryId),
+        eq(schema.watchEntries.userId, user.id),
+        eq(schema.watchEntries.status, "completed"),
+      ),
+    )
+    .returning({ type: schema.watchEntries.contentType, id: schema.watchEntries.contentId });
   if (!res.length) return { ok: false, error: "Card não encontrado." };
 
-  revalidatePath(`/u/${user.username}`);
-  revalidatePath(`/series/${res[0].seriesId}`);
+  revalidate(user.username, res[0].type, res[0].id);
   const card = await getEntry(v.entryId);
   return card ? { ok: true, data: card } : { ok: false, error: "Card não encontrado." };
 }
@@ -111,30 +222,38 @@ export async function deleteEntry(entryId: string): Promise<Result<null>> {
   const res = await db
     .delete(schema.watchEntries)
     .where(and(eq(schema.watchEntries.id, entryId), eq(schema.watchEntries.userId, user.id)))
-    .returning({ seriesId: schema.watchEntries.seriesId });
+    .returning({ type: schema.watchEntries.contentType, id: schema.watchEntries.contentId });
   if (!res.length) return { ok: false, error: "Card não encontrado." };
-  revalidatePath(`/u/${user.username}`);
-  revalidatePath(`/series/${res[0].seriesId}`);
+  revalidate(user.username, res[0].type, res[0].id);
   return { ok: true, data: null };
 }
 
-export async function toggleFavorite(seriesId: number): Promise<Result<boolean>> {
+export async function toggleFavorite(input: z.input<typeof addSchema>): Promise<Result<boolean>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Sessão expirada." };
-  if (!Number.isInteger(seriesId) || seriesId <= 0) return { ok: false, error: "Série inválida." };
+  const parsed = addSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Obra inválida." };
+  const { contentType: type, contentId: id } = parsed.data;
 
-  const watched = await db.query.watchEntries.findFirst({
-    where: and(eq(schema.watchEntries.userId, user.id), eq(schema.watchEntries.seriesId, seriesId)),
+  const owned = await db.query.watchEntries.findFirst({
+    where: and(
+      eq(schema.watchEntries.userId, user.id),
+      eq(schema.watchEntries.contentType, type),
+      eq(schema.watchEntries.contentId, id),
+    ),
     columns: { id: true },
   });
-  if (!watched) return { ok: false, error: "Conclua a série antes de favoritá-la." };
+  if (!owned) return { ok: false, error: "Adicione a obra à coleção antes de favoritá-la." };
 
-  const where = and(eq(schema.favorites.userId, user.id), eq(schema.favorites.seriesId, seriesId));
+  const where = and(
+    eq(schema.favorites.userId, user.id),
+    eq(schema.favorites.contentType, type),
+    eq(schema.favorites.contentId, id),
+  );
   const existing = await db.query.favorites.findFirst({ where });
   if (existing) await db.delete(schema.favorites).where(where);
-  else await db.insert(schema.favorites).values({ userId: user.id, seriesId });
+  else await db.insert(schema.favorites).values({ userId: user.id, contentType: type, contentId: id });
 
-  revalidatePath(`/u/${user.username}`);
-  revalidatePath(`/series/${seriesId}`);
+  revalidate(user.username, type, id);
   return { ok: true, data: !existing };
 }

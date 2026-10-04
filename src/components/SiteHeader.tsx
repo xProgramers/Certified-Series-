@@ -6,44 +6,44 @@ import { Wordmark } from "./Logo";
 export async function SiteHeader() {
   const user = await getCurrentUser();
   return (
-    <header className="sticky top-0 z-40 border-b border-line/60 bg-ink-0/70 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/55">
+    <header className="sticky top-0 z-40 bg-ink-0/80 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8">
         <Link href={user ? `/u/${user.username}` : "/"} aria-label="Certified Series — início" className="shrink-0">
           <Wordmark />
         </Link>
-        <nav aria-label="Principal" className="flex items-center gap-1 text-sm sm:gap-2">
-          <Link
-            href="/search"
-            className="flex items-center gap-2 rounded-full px-3 py-2 text-mute transition-colors hover:text-paper"
-          >
-            <SearchIcon />
-            <span className="hidden sm:inline">Buscar</span>
-          </Link>
+        <nav aria-label="Principal" className="flex items-center gap-1 text-sm sm:gap-3">
           {user ? (
             <>
-              <Link
-                href={`/u/${user.username}`}
-                className="rounded-full px-3 py-2 text-mute transition-colors hover:text-paper"
-              >
+              <Link href={`/u/${user.username}`} className="px-2 py-2 text-mute transition-colors hover:text-paper">
                 Coleção
               </Link>
+              <Link
+                href="/search"
+                aria-label="Buscar e adicionar"
+                className="flex items-center gap-2 px-2 py-2 text-mute transition-colors hover:text-paper"
+              >
+                <SearchIcon />
+                <span className="hidden sm:inline">Buscar</span>
+              </Link>
               <form action={logout}>
-                <button className="rounded-full px-3 py-2 text-dim transition-colors hover:text-paper" type="submit">
+                <button className="px-2 py-2 text-dim transition-colors hover:text-paper" type="submit">
                   Sair
                 </button>
               </form>
             </>
           ) : (
             <>
-              <Link href="/login" className="whitespace-nowrap rounded-full px-3 py-2 text-mute transition-colors hover:text-paper">
+              <Link href="/search" aria-label="Buscar" className="px-2 py-2 text-mute transition-colors hover:text-paper">
+                <SearchIcon />
+              </Link>
+              <Link href="/login" className="whitespace-nowrap px-2 py-2 text-mute transition-colors hover:text-paper">
                 Entrar
               </Link>
               <Link
                 href="/signup"
-                className="whitespace-nowrap rounded-full border border-line-strong px-4 py-2 text-paper transition-colors hover:border-gold/60 hover:bg-white/[0.03]"
+                className="whitespace-nowrap rounded-full bg-paper px-4 py-2 text-ink-0 transition-colors hover:bg-white"
               >
-                <span className="sm:hidden">Criar conta</span>
-                <span className="hidden sm:inline">Começar coleção</span>
+                Criar coleção
               </Link>
             </>
           )}

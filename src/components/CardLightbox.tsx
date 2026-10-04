@@ -4,10 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteEntry, toggleFavorite, updateEntry } from "@/app/actions/collection";
-import { formatCardDate, formatCollectionNumber, formatRating, type CardData } from "@/lib/card-types";
-import { SeriesCard } from "./card/SeriesCard";
+import {
+  cardDate,
+  formatCardDate,
+  formatCollectionNumber,
+  formatRating,
+  titleHref,
+  TYPE_LABEL,
+  type CardData,
+} from "@/lib/card-types";
+import { ContentCard } from "./card/ContentCard";
 import { useCardExport, type ExportFormat } from "./card/CardExport";
-import { EntryFields, type EntryValues } from "./EntryForm";
+import { CompleteFlow } from "./CompleteDialog";
+import { EntryFields, todayISO, type EntryValues } from "./EntryForm";
 import { CloseButton, Modal } from "./Modal";
 
 type Props = {
@@ -41,14 +50,15 @@ export function CardLightbox({ card, isOwner, onClose, onChange, onDelete, initi
 function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, initialMode }: Props & { card: CardData }) {
   const router = useRouter();
   const [card, setCard] = useState(initial);
-  const [mode, setMode] = useState<"view" | "edit">(initialMode ?? "view");
+  const [mode, setMode] = useState<"view" | "edit" | "complete">(initialMode ?? "view");
   const [values, setValues] = useState<EntryValues>(() => valuesOf(initial));
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const { exportCard, busy, stage } = useCardExport();
 
-  const preview: CardData = mode === "edit" ? { ...card, ...values, watchedAt: values.watchedAt + "T12:00:00.000Z" } : card;
+  const preview: CardData = mode === "edit" ? { ...card, ...values, completedAt: values.completedAt + "T12:00:00.000Z" } : card;
+  const inProgress = card.status === "in_progress";
 
   const commit = (next: CardData) => {
     setCard(next);
@@ -68,7 +78,7 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
 
   const fav = () =>
     start(async () => {
-      const res = await toggleFavorite(card.seriesId);
+      const res = await toggleFavorite({ contentType: card.contentType, contentId: card.contentId });
       if (!res.ok) return setError(res.error);
       commit({ ...card, isFavorite: res.data });
     });
@@ -94,54 +104,89 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
     }
   };
 
+  if (mode === "complete") {
+    return (
+      <CompleteFlow
+        work={card}
+        entry={card}
+        owner={{ name: card.ownerName, username: card.ownerUsername }}
+        nextNumber={card.collectionNumber}
+        viewingNumber={card.viewingNumber}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
     <div data-backdrop className="flex min-h-dvh items-start justify-center overflow-y-auto px-4 py-16 sm:items-center sm:px-8">
       <CloseButton onClick={onClose} className="fixed right-4 top-4 z-10 sm:right-6 sm:top-6" />
       <div className="grid w-full max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-14">
-        <div className="mx-auto w-full max-w-[420px] rise">
-          <SeriesCard card={preview} posterSize="w780" priority />
+        <div className="mx-auto w-full max-w-[min(420px,78vw)] rise">
+          <ContentCard card={preview} posterSize="w780" priority />
         </div>
 
         <div className="rise" style={{ animationDelay: "120ms" }}>
           {mode === "view" ? (
             <>
               <p className="eyebrow">
-                N° {formatCollectionNumber(card.collectionNumber)} · concluída em {formatCardDate(card.watchedAt)}
+                N° {formatCollectionNumber(card.collectionNumber)} · {TYPE_LABEL[card.contentType].one} ·{" "}
+                {inProgress ? `em andamento desde ${formatCardDate(card.addedAt)}` : `concluído em ${formatCardDate(cardDate(card))}`}
                 {!card.isPublic && " · privado"}
               </p>
-              <h2 className="mt-3 font-serif text-5xl leading-[0.95] tracking-tight">{card.title}</h2>
+              <h2 className="mt-3 font-serif text-4xl leading-[0.95] tracking-tight sm:text-5xl">{card.title}</h2>
               <p className="mt-3 font-mono text-sm text-mute">
-                {formatRating(card.rating)} / 10{card.isFavorite && <span className="text-gold"> · ✦ favorita</span>}
+                {inProgress ? (
+                  "In progress"
+                ) : (
+                  <>
+                    {formatRating(card.rating ?? 0)} / 10 ·{" "}
+                    <span className={card.certification === "certified" ? "text-gold" : "text-paper/70"}>
+                      {card.certification === "certified" ? "✓ Certified" : "✕ Not certified"}
+                    </span>
+                  </>
+                )}
+                {card.isFavorite && <span className="text-gold"> · ✦ favorito</span>}
               </p>
-              {card.reflection && (
+              {!inProgress && card.reflection && (
                 <blockquote className="mt-8 border-l border-gold/40 pl-5 font-serif text-xl italic leading-relaxed text-paper/90">
                   {card.reflection}
                 </blockquote>
               )}
 
-              <div className="mt-10 space-y-3">
-                <p className="eyebrow">Compartilhar</p>
-                <div className="flex flex-wrap gap-2">
-                  <ActionButton primary onClick={() => doExport("card")} disabled={!!busy}>
-                    {busy === "card" ? "Gerando…" : "Salvar card (PNG)"}
-                  </ActionButton>
-                  <ActionButton onClick={() => doExport("story")} disabled={!!busy}>
-                    {busy === "story" ? "Gerando…" : "Imagem para Stories"}
-                  </ActionButton>
+              {inProgress ? (
+                isOwner && (
+                  <div className="mt-10">
+                    <ActionButton primary onClick={() => setMode("complete")}>
+                      ✓ Marcar como concluído
+                    </ActionButton>
+                    <p className="mt-3 text-sm text-dim">Ao concluir, o card ganha cor e recebe sua nota e reflexão.</p>
+                  </div>
+                )
+              ) : (
+                <div className="mt-10 space-y-3">
+                  <p className="eyebrow">Compartilhar</p>
+                  <div className="flex flex-wrap gap-2">
+                    <ActionButton primary onClick={() => doExport("card")} disabled={!!busy}>
+                      {busy === "card" ? "Gerando…" : "Salvar card (PNG)"}
+                    </ActionButton>
+                    <ActionButton onClick={() => doExport("story")} disabled={!!busy}>
+                      {busy === "story" ? "Gerando…" : "Imagem para Stories"}
+                    </ActionButton>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-line pt-6 text-sm">
+              <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
                 {isOwner && (
                   <>
                     <TextButton onClick={fav} disabled={pending}>
                       {card.isFavorite ? "✦ Remover dos favoritos" : "✧ Favoritar"}
                     </TextButton>
-                    <TextButton onClick={() => setMode("edit")}>Editar nota e reflexão</TextButton>
+                    {!inProgress && <TextButton onClick={() => setMode("edit")}>Editar nota e reflexão</TextButton>}
                   </>
                 )}
-                <Link href={`/series/${card.seriesId}`} className="text-mute underline-offset-4 hover:text-paper hover:underline">
-                  Ver série
+                <Link href={titleHref(card.contentType, card.contentId)} className="text-mute underline-offset-4 hover:text-paper hover:underline">
+                  {card.contentType === "movie" ? "Ver filme" : "Ver série"}
                 </Link>
                 {isOwner && (
                   <TextButton onClick={remove} disabled={pending} danger>
@@ -183,7 +228,12 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
 }
 
 function valuesOf(c: CardData): EntryValues {
-  return { rating: c.rating, reflection: c.reflection, watchedAt: c.watchedAt.slice(0, 10), isPublic: c.isPublic };
+  return {
+    rating: c.rating ?? 8,
+    reflection: c.reflection,
+    completedAt: (c.completedAt ?? todayISO()).slice(0, 10),
+    isPublic: c.isPublic,
+  };
 }
 
 export function ActionButton({

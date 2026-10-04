@@ -1,6 +1,8 @@
+import type { ContentType } from "@/db/schema";
+
 /**
  * Sample catalog used when no TMDB token is configured, so the whole product
- * (search, series pages, cards, export) can be developed and previewed.
+ * (search, title pages, cards, export) can be developed and previewed.
  * Posters are generated as SVG art by /api/mock-poster/[id].
  */
 export type MockMotif =
@@ -15,15 +17,20 @@ export type MockMotif =
   | "crown"
   | "tower";
 
-export type MockSeries = {
+export type MockTitle = {
+  type: ContentType;
   id: number;
   name: string;
   originalName?: string;
   overview: string;
   firstAirYear: number;
   lastAirYear?: number;
-  seasons: number;
-  episodes: number;
+  /** Series only */
+  seasons?: number;
+  episodes?: number;
+  /** Movies only, minutes */
+  runtime?: number;
+  contentRating?: string;
   genres: string[];
   networks: string[];
   status: string;
@@ -32,7 +39,9 @@ export type MockSeries = {
   motif: MockMotif;
 };
 
-export const MOCK_CATALOG: MockSeries[] = [
+type MockSeries = Omit<MockTitle, "type">;
+
+const MOCK_SERIES: MockSeries[] = [
   { id: 1396, name: "Breaking Bad", overview: "Um professor de química com câncer terminal passa a produzir metanfetamina para garantir o futuro da família e descobre quem realmente é.", firstAirYear: 2008, lastAirYear: 2013, seasons: 5, episodes: 62, genres: ["Drama", "Crime"], networks: ["AMC"], status: "Ended", colors: ["#1c2a14", "#6f8a2a", "#e8d36a"], motif: "sun" },
   { id: 1399, name: "Game of Thrones", overview: "Famílias nobres disputam o Trono de Ferro enquanto uma ameaça antiga desperta além da Muralha.", firstAirYear: 2011, lastAirYear: 2019, seasons: 8, episodes: 73, genres: ["Drama", "Fantasia", "Aventura"], networks: ["HBO"], status: "Ended", colors: ["#0f1418", "#3c4f5c", "#c9d6df"], motif: "crown" },
   { id: 95396, name: "Severance", overview: "Funcionários da Lumon passam por um procedimento que separa suas memórias do trabalho das memórias da vida pessoal.", firstAirYear: 2022, seasons: 2, episodes: 19, genres: ["Drama", "Mistério", "Ficção científica"], networks: ["Apple TV+"], status: "Returning Series", colors: ["#0b1f2a", "#1f5c6e", "#d9eef2"], motif: "grid" },
@@ -63,21 +72,54 @@ export const MOCK_CATALOG: MockSeries[] = [
   { id: 90462, name: "Chucky", overview: "Um boneco assassino ressurge numa venda de garagem e espalha caos numa cidadezinha americana.", firstAirYear: 2021, lastAirYear: 2024, seasons: 3, episodes: 24, genres: ["Crime", "Mistério"], networks: ["SYFY"], status: "Ended", colors: ["#140c06", "#c2501a", "#ffd890"], motif: "sun" },
 ];
 
-export function findMock(id: number) {
-  return MOCK_CATALOG.find((s) => s.id === id);
+// Movies use the network field for the studio/distributor shown on the generated poster
+const MOCK_MOVIES: MockSeries[] = [
+  { id: 603, name: "Matrix", originalName: "The Matrix", overview: "Um hacker descobre que a realidade em que vive é uma simulação e é recrutado para a guerra contra as máquinas que a controlam.", firstAirYear: 1999, runtime: 136, contentRating: "14", genres: ["Ação", "Ficção científica"], networks: ["Warner Bros."], status: "Released", colors: ["#06120a", "#1f6a3a", "#9af0b0"], motif: "grid" },
+  { id: 27205, name: "A Origem", originalName: "Inception", overview: "Um ladrão que invade sonhos recebe a missão inversa: plantar uma ideia na mente de alguém.", firstAirYear: 2010, runtime: 148, contentRating: "14", genres: ["Ação", "Ficção científica", "Aventura"], networks: ["Warner Bros."], status: "Released", colors: ["#0c1016", "#3a5a7a", "#e0d0b0"], motif: "tower" },
+  { id: 496243, name: "Parasita", originalName: "기생충", overview: "Uma família pobre se infiltra, um a um, na casa de uma família rica, até que um segredo no porão muda tudo.", firstAirYear: 2019, runtime: 133, contentRating: "16", genres: ["Comédia", "Thriller", "Drama"], networks: ["CJ Entertainment"], status: "Released", colors: ["#121410", "#5a6a4a", "#f0e8c8"], motif: "stripes" },
+  { id: 157336, name: "Interestelar", originalName: "Interstellar", overview: "Com a Terra morrendo, um grupo de exploradores atravessa um buraco de minhoca em busca de um novo lar para a humanidade.", firstAirYear: 2014, runtime: 169, contentRating: "10", genres: ["Aventura", "Drama", "Ficção científica"], networks: ["Paramount"], status: "Released", colors: ["#0a0a0e", "#3a3a5a", "#f0e0c0"], motif: "orbit" },
+  { id: 238, name: "O Poderoso Chefão", originalName: "The Godfather", overview: "O patriarca de uma dinastia do crime organizado transfere o controle do seu império ao filho relutante.", firstAirYear: 1972, runtime: 175, contentRating: "14", genres: ["Drama", "Crime"], networks: ["Paramount"], status: "Released", colors: ["#100a06", "#6a3a1a", "#e8c080"], motif: "crown" },
+  { id: 129, name: "A Viagem de Chihiro", originalName: "千と千尋の神隠し", overview: "Uma menina entra num mundo de espíritos e precisa trabalhar numa casa de banhos para salvar os pais.", firstAirYear: 2001, runtime: 125, contentRating: "L", genres: ["Animação", "Família", "Fantasia"], networks: ["Studio Ghibli"], status: "Released", colors: ["#0a1418", "#2a7a8a", "#ffd0a0"], motif: "waves" },
+  { id: 680, name: "Pulp Fiction", overview: "Histórias de crime em Los Angeles se cruzam numa narrativa fora de ordem, entre gângsteres, boxeadores e uma maleta misteriosa.", firstAirYear: 1994, runtime: 154, contentRating: "18", genres: ["Thriller", "Crime"], networks: ["Miramax"], status: "Released", colors: ["#140a08", "#b8401a", "#ffd060"], motif: "sun" },
+  { id: 872585, name: "Oppenheimer", overview: "A história do físico que liderou o projeto que criou a bomba atômica, e do peso que isso deixou.", firstAirYear: 2023, runtime: 180, contentRating: "16", genres: ["Drama", "História"], networks: ["Universal"], status: "Released", colors: ["#140a04", "#a04a10", "#ffd890"], motif: "sun" },
+  { id: 438631, name: "Duna", originalName: "Dune", overview: "O herdeiro de uma casa nobre chega ao planeta mais perigoso do universo, fonte da substância mais valiosa que existe.", firstAirYear: 2021, runtime: 155, contentRating: "14", genres: ["Ficção científica", "Aventura"], networks: ["Legendary"], status: "Released", colors: ["#1a1008", "#a0703a", "#f8e0b0"], motif: "peaks" },
+  { id: 13, name: "Forrest Gump", overview: "Um homem simples atravessa décadas da história americana sem perder a bondade nem o amor de infância.", firstAirYear: 1994, runtime: 142, contentRating: "12", genres: ["Comédia", "Drama", "Romance"], networks: ["Paramount"], status: "Released", colors: ["#0e1418", "#5a7a9a", "#f0f0e0"], motif: "door" },
+  { id: 550, name: "Clube da Luta", originalName: "Fight Club", overview: "Um homem insone e um vendedor de sabão carismático fundam um clube clandestino que sai do controle.", firstAirYear: 1999, runtime: 139, contentRating: "18", genres: ["Drama", "Thriller"], networks: ["20th Century Fox"], status: "Released", colors: ["#140c10", "#8a2a4a", "#f0b0c0"], motif: "eye" },
+  { id: 19995, name: "Avatar", overview: "Um ex-fuzileiro paraplégico é enviado a uma lua habitada e se divide entre cumprir ordens e proteger o mundo que aprende a amar.", firstAirYear: 2009, runtime: 162, contentRating: "12", genres: ["Ação", "Aventura", "Fantasia"], networks: ["20th Century Fox"], status: "Released", colors: ["#06101a", "#1a5a8a", "#a0f0ff"], motif: "waves" },
+];
+
+export const MOCK_CATALOG: MockTitle[] = [
+  ...MOCK_SERIES.map((m) => ({ ...m, type: "series" as const })),
+  ...MOCK_MOVIES.map((m) => ({ ...m, type: "movie" as const })),
+];
+
+export function findMock(type: ContentType, id: number) {
+  return MOCK_CATALOG.find((s) => s.type === type && s.id === id);
+}
+
+/** Poster path stored for sample titles: "mock:1396" (series) or "mock:m603" (movie). */
+export function mockImagePath(m: Pick<MockTitle, "type" | "id">) {
+  return `mock:${m.type === "movie" ? "m" : ""}${m.id}`;
+}
+
+/** Inverse of mockImagePath's id segment ("1396" / "m603"). */
+export function findMockByImageKey(key: string) {
+  return key.startsWith("m") ? findMock("movie", Number(key.slice(1))) : findMock("series", Number(key));
 }
 
 function normalize(s: string) {
   return s
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
 
-export function searchMock(query: string) {
+export function searchMock(query: string, type: ContentType | "all" = "all") {
   const q = normalize(query.trim());
   if (!q) return [];
   return MOCK_CATALOG.filter(
-    (s) => normalize(s.name).includes(q) || normalize(s.originalName ?? "").includes(q),
+    (s) =>
+      (type === "all" || s.type === type) &&
+      (normalize(s.name).includes(q) || normalize(s.originalName ?? "").includes(q)),
   );
 }

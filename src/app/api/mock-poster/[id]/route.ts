@@ -1,12 +1,12 @@
-import { findMock, type MockSeries } from "@/lib/mock-catalog";
+import { findMockByImageKey, type MockTitle } from "@/lib/mock-catalog";
 
 /**
  * Generates abstract art posters for the sample catalog (no TMDB token).
- * Pure SVG, deterministic per series.
+ * Pure SVG, deterministic per title. id is "1396" (series) or "m603" (movie).
  */
 export async function GET(req: Request, ctx: RouteContext<"/api/mock-poster/[id]">) {
   const { id } = await ctx.params;
-  const m = findMock(Number(id));
+  const m = findMockByImageKey(id);
   if (!m) return new Response("Not found", { status: 404 });
   const kind = new URL(req.url).searchParams.get("kind") === "backdrop" ? "backdrop" : "poster";
   const svg = kind === "poster" ? poster(m) : backdrop(m);
@@ -21,7 +21,7 @@ export async function GET(req: Request, ctx: RouteContext<"/api/mock-poster/[id]
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function motif(m: MockSeries, w: number, h: number) {
+function motif(m: MockTitle, w: number, h: number) {
   const [, mid, hi] = m.colors;
   const cx = w / 2;
   const cy = h * 0.4;
@@ -94,7 +94,7 @@ function motif(m: MockSeries, w: number, h: number) {
   }
 }
 
-function defs(m: MockSeries, w: number, h: number) {
+function defs(m: MockTitle, w: number, h: number) {
   const [bg, mid] = m.colors;
   return `<defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
@@ -113,7 +113,7 @@ function defs(m: MockSeries, w: number, h: number) {
   <rect width="${w}" height="${h}" fill="url(#bg)"/>`;
 }
 
-function poster(m: MockSeries) {
+function poster(m: MockTitle) {
   const w = 500;
   const h = 750;
   const [, , hi] = m.colors;
@@ -123,14 +123,14 @@ function poster(m: MockSeries) {
   ${defs(m, w, h)}
   ${motif(m, w, h)}
   <rect width="${w}" height="${h}" fill="url(#vig)"/>
-  <text x="${w / 2}" y="48" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" letter-spacing="6" fill="${hi}" opacity=".75">${esc(m.networks[0].toUpperCase())} ORIGINAL</text>
+  <text x="${w / 2}" y="48" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" letter-spacing="6" fill="${hi}" opacity=".75">${esc(m.type === "movie" ? m.networks[0].toUpperCase() + " PRESENTS" : m.networks[0].toUpperCase() + " ORIGINAL")}</text>
   <text x="${w / 2}" y="${h - 92}" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="${size}" letter-spacing="${size * 0.12}" fill="#f4efe6">${title}</text>
-  <text x="${w / 2}" y="${h - 56}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" letter-spacing="5" fill="#f4efe6" opacity=".55">${m.firstAirYear} · ${m.seasons} ${m.seasons > 1 ? "SEASONS" : "SEASON"}</text>
+  <text x="${w / 2}" y="${h - 56}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="10" letter-spacing="5" fill="#f4efe6" opacity=".55">${m.firstAirYear} · ${m.type === "movie" ? `${m.runtime} MIN` : `${m.seasons} ${m.seasons! > 1 ? "SEASONS" : "SEASON"}`}</text>
   <rect width="${w}" height="${h}" filter="url(#grain)"/>
 </svg>`;
 }
 
-function backdrop(m: MockSeries) {
+function backdrop(m: MockTitle) {
   const w = 1280;
   const h = 720;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">

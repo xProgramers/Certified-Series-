@@ -1,98 +1,118 @@
 import "server-only";
 import { and, desc, eq, max, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import type { CardPalette } from "@/db/schema";
+import type { CardPalette, CertificationStatus, ContentType, EntryStatus } from "@/db/schema";
 import type { CardData } from "./card-types";
-import type { SeriesDetail } from "./tmdb";
+import type { TitleDetail } from "./tmdb";
 
-const { users, series, watchEntries, favorites } = schema;
+const { users, titles, watchEntries, favorites } = schema;
 
-/** Insert or refresh the shared series cache from TMDB data. */
-export async function upsertSeries(d: SeriesDetail) {
+/** Insert or refresh the shared title cache from TMDB data. */
+export async function upsertTitle(d: TitleDetail) {
   const values = {
+    type: d.type,
     id: d.id,
     name: d.name,
     originalName: d.originalName,
     overview: d.overview,
     posterPath: d.posterPath,
     backdropPath: d.backdropPath,
-    firstAirYear: d.firstAirYear,
-    lastAirYear: d.lastAirYear,
+    startYear: d.year,
+    endYear: d.endYear,
     numberOfSeasons: d.numberOfSeasons,
     numberOfEpisodes: d.numberOfEpisodes,
+    runtime: d.runtime,
     genres: d.genres,
     networks: d.networks,
+    contentRating: d.contentRating,
     status: d.status,
   };
   await db
-    .insert(series)
+    .insert(titles)
     .values(values)
-    .onConflictDoUpdate({ target: series.id, set: { ...values, updatedAt: new Date() } });
+    .onConflictDoUpdate({ target: [titles.type, titles.id], set: { ...values, updatedAt: new Date() } });
 }
 
 const cardSelect = {
   entryId: watchEntries.id,
-  seriesId: watchEntries.seriesId,
+  contentType: watchEntries.contentType,
+  contentId: watchEntries.contentId,
   collectionNumber: watchEntries.collectionNumber,
   viewingNumber: watchEntries.viewingNumber,
+  status: watchEntries.status,
   ratingHalves: watchEntries.ratingHalves,
+  certification: watchEntries.certificationStatus,
   reflection: watchEntries.reflection,
   isPublic: watchEntries.isPublic,
   palette: watchEntries.palette,
-  watchedAt: watchEntries.watchedAt,
-  title: series.name,
-  firstAirYear: series.firstAirYear,
-  lastAirYear: series.lastAirYear,
-  seasons: series.numberOfSeasons,
-  genres: series.genres,
-  posterPath: series.posterPath,
-  backdropPath: series.backdropPath,
+  addedAt: watchEntries.addedAt,
+  completedAt: watchEntries.completedAt,
+  title: titles.name,
+  startYear: titles.startYear,
+  endYear: titles.endYear,
+  seasons: titles.numberOfSeasons,
+  runtime: titles.runtime,
+  genres: titles.genres,
+  posterPath: titles.posterPath,
+  backdropPath: titles.backdropPath,
   ownerName: users.displayName,
   ownerUsername: users.username,
-  favSeries: favorites.seriesId,
+  favId: favorites.contentId,
 };
 
 type Row = {
   entryId: string;
-  seriesId: number;
+  contentType: ContentType;
+  contentId: number;
   collectionNumber: number;
   viewingNumber: number;
-  ratingHalves: number;
+  status: EntryStatus;
+  ratingHalves: number | null;
+  certification: CertificationStatus | null;
   reflection: string;
   isPublic: boolean;
   palette: CardPalette | null;
-  watchedAt: Date;
+  addedAt: Date;
+  completedAt: Date | null;
   title: string;
-  firstAirYear: number | null;
-  lastAirYear: number | null;
+  startYear: number | null;
+  endYear: number | null;
   seasons: number | null;
+  runtime: number | null;
   genres: string[];
   posterPath: string | null;
   backdropPath: string | null;
   ownerName: string;
   ownerUsername: string;
-  favSeries: number | null;
+  favId: number | null;
 };
 
 function toCard(r: Row): CardData {
+  const completed = r.status === "completed" && r.ratingHalves != null;
   return {
     entryId: r.entryId,
-    seriesId: r.seriesId,
+    contentType: r.contentType,
+    contentId: r.contentId,
     title: r.title,
-    firstAirYear: r.firstAirYear,
-    lastAirYear: r.lastAirYear,
-    seasons: r.seasons,
+    startYear: r.startYear,
+    endYear: r.endYear,
+    seasons: r.contentType === "series" ? r.seasons : null,
+    runtime: r.contentType === "movie" ? r.runtime : null,
     genres: r.genres ?? [],
     posterPath: r.posterPath,
     backdropPath: r.backdropPath,
-    rating: r.ratingHalves / 2,
+    status: completed ? "completed" : "in_progress",
+    rating: completed ? r.ratingHalves! / 2 : null,
+    // An incomplete work is never certified, whatever the row says
+    certification: completed ? r.certification : null,
     reflection: r.reflection,
-    watchedAt: r.watchedAt.toISOString(),
+    addedAt: r.addedAt.toISOString(),
+    completedAt: completed && r.completedAt ? r.completedAt.toISOString() : null,
     collectionNumber: r.collectionNumber,
     viewingNumber: r.viewingNumber,
     ownerName: r.ownerName,
     ownerUsername: r.ownerUsername,
-    isFavorite: r.favSeries != null,
+    isFavorite: r.favId != null,
     isPublic: r.isPublic,
     palette: r.palette,
   };
@@ -102,11 +122,15 @@ function baseQuery() {
   return db
     .select(cardSelect)
     .from(watchEntries)
-    .innerJoin(series, eq(series.id, watchEntries.seriesId))
+    .innerJoin(titles, and(eq(titles.type, watchEntries.contentType), eq(titles.id, watchEntries.contentId)))
     .innerJoin(users, eq(users.id, watchEntries.userId))
     .leftJoin(
       favorites,
-      and(eq(favorites.userId, watchEntries.userId), eq(favorites.seriesId, watchEntries.seriesId)),
+      and(
+        eq(favorites.userId, watchEntries.userId),
+        eq(favorites.contentType, watchEntries.contentType),
+        eq(favorites.contentId, watchEntries.contentId),
+      ),
     );
 }
 
@@ -120,10 +144,10 @@ export async function getCollection(userId: string, opts: { includePrivate: bool
   return rows.map(toCard);
 }
 
-/** Latest viewing of a series by a user (rewatch-ready). */
-export async function getLatestEntry(userId: string, seriesId: number) {
+/** Latest viewing of a work by a user (rewatch-ready). */
+export async function getLatestEntry(userId: string, type: ContentType, id: number) {
   const [row] = await baseQuery()
-    .where(and(eq(watchEntries.userId, userId), eq(watchEntries.seriesId, seriesId)))
+    .where(and(eq(watchEntries.userId, userId), eq(watchEntries.contentType, type), eq(watchEntries.contentId, id)))
     .orderBy(desc(watchEntries.viewingNumber))
     .limit(1);
   return row ? toCard(row) : null;
@@ -132,6 +156,24 @@ export async function getLatestEntry(userId: string, seriesId: number) {
 export async function getEntry(entryId: string) {
   const [row] = await baseQuery().where(eq(watchEntries.id, entryId)).limit(1);
   return row ? toCard(row) : null;
+}
+
+/** What the user already has of each work: "series:1396" → latest status and N°. */
+export async function getOwnership(userId: string) {
+  const rows = await db
+    .select({
+      type: watchEntries.contentType,
+      id: watchEntries.contentId,
+      status: watchEntries.status,
+      n: watchEntries.collectionNumber,
+      viewing: watchEntries.viewingNumber,
+    })
+    .from(watchEntries)
+    .where(eq(watchEntries.userId, userId))
+    .orderBy(watchEntries.viewingNumber);
+  const out: Record<string, { status: EntryStatus; n: number }> = {};
+  for (const r of rows) out[`${r.type}:${r.id}`] = { status: r.status, n: r.n };
+  return out;
 }
 
 export async function getUserByUsername(username: string) {
@@ -149,44 +191,42 @@ export async function nextCollectionNumber(userId: string) {
   return (r?.n ?? 0) + 1;
 }
 
-export async function nextViewingNumber(userId: string, seriesId: number) {
+export async function nextViewingNumber(userId: string, type: ContentType, id: number) {
   const [r] = await db
     .select({ n: max(watchEntries.viewingNumber) })
     .from(watchEntries)
-    .where(and(eq(watchEntries.userId, userId), eq(watchEntries.seriesId, seriesId)));
+    .where(and(eq(watchEntries.userId, userId), eq(watchEntries.contentType, type), eq(watchEntries.contentId, id)));
   return (r?.n ?? 0) + 1;
 }
 
-/** Recent public cards across all users (home hero). */
+/** Recent public, completed cards across all users (home). */
 export async function getShowcase(limit = 9) {
   const rows = await baseQuery()
-    .where(eq(watchEntries.isPublic, true))
-    .orderBy(desc(sql`${watchEntries.ratingHalves} + (${favorites.seriesId} is not null) * 2`), desc(watchEntries.watchedAt))
+    .where(and(eq(watchEntries.isPublic, true), eq(watchEntries.status, "completed")))
+    .orderBy(
+      desc(sql`${watchEntries.ratingHalves} + (${favorites.contentId} is not null) * 2`),
+      desc(watchEntries.completedAt),
+    )
     .limit(limit);
   return rows.map(toCard);
 }
 
 export type CollectionStats = {
   total: number;
-  average: number | null;
-  topGenre: string | null;
-  favorites: number;
-  seasons: number;
-  masterpieces: number;
+  series: number;
+  movies: number;
+  inProgress: number;
+  certified: number;
+  notCertified: number;
 };
 
 export function computeStats(cards: CardData[]): CollectionStats {
-  const total = cards.length;
-  const average = total ? cards.reduce((a, c) => a + c.rating, 0) / total : null;
-  const genreCount = new Map<string, number>();
-  for (const c of cards) for (const g of c.genres) genreCount.set(g, (genreCount.get(g) ?? 0) + 1);
-  const topGenre = [...genreCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   return {
-    total,
-    average,
-    topGenre,
-    favorites: cards.filter((c) => c.isFavorite).length,
-    seasons: cards.reduce((a, c) => a + (c.seasons ?? 0), 0),
-    masterpieces: cards.filter((c) => c.rating >= 9.5).length,
+    total: cards.length,
+    series: cards.filter((c) => c.contentType === "series").length,
+    movies: cards.filter((c) => c.contentType === "movie").length,
+    inProgress: cards.filter((c) => c.status === "in_progress").length,
+    certified: cards.filter((c) => c.certification === "certified").length,
+    notCertified: cards.filter((c) => c.certification === "not_certified").length,
   };
 }
