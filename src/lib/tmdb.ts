@@ -1,5 +1,5 @@
 import "server-only";
-import type { ContentType } from "@/db/schema";
+import type { ContentType, SeasonInfo } from "@/db/schema";
 import { MOCK_CATALOG, findMock, mockImagePath, searchMock, type MockTitle } from "./mock-catalog";
 import { MOCK_COLLECTIONS, MOCK_CREDITS } from "./mock-extras";
 
@@ -31,6 +31,8 @@ export type TitleDetail = TitleSummary & {
   contentRating: string | null;
   status: string | null;
   tagline: string | null;
+  /** Series only. */
+  seasonList: SeasonInfo[] | null;
 };
 
 const API = "https://api.themoviedb.org/3";
@@ -112,14 +114,41 @@ function fromMock(m: MockTitle): TitleDetail {
     year: m.firstAirYear,
     endYear: m.lastAirYear ?? null,
     genres: m.genres,
-    numberOfSeasons: m.seasons ?? null,
+    numberOfSeasons: m.seasons != null ? m.seasons + (m.airing ? 1 : 0) : null,
     numberOfEpisodes: m.episodes ?? null,
     runtime: m.runtime ?? null,
     networks: m.networks,
     contentRating: m.contentRating ?? null,
     status: m.status,
     tagline: null,
+    seasonList: m.type === "series" ? mockSeasons(m) : null,
   };
+}
+
+/** Even episode split across seasons, one season a year; an optional last season still airing. */
+function mockSeasons(m: MockTitle): SeasonInfo[] {
+  const n = m.seasons ?? 1;
+  const per = Math.max(1, Math.round((m.episodes ?? n * 8) / n));
+  const span = (m.lastAirYear ?? Math.min(m.firstAirYear + n - 1, new Date().getFullYear())) - m.firstAirYear;
+  const list: SeasonInfo[] = Array.from({ length: n }, (_, i) => ({
+    number: i + 1,
+    name: `Temporada ${i + 1}`,
+    episodes: per,
+    aired: per,
+    year: m.firstAirYear + (n > 1 ? Math.round((span * i) / (n - 1)) : 0),
+    state: "released",
+  }));
+  if (m.airing) {
+    list.push({
+      number: n + 1,
+      name: `Temporada ${n + 1}`,
+      episodes: m.airing.episodes,
+      aired: m.airing.aired,
+      year: new Date().getFullYear(),
+      state: m.airing.aired > 0 ? "airing" : "upcoming",
+    });
+  }
+  return list;
 }
 
 type TmdbResult = {
@@ -190,8 +219,46 @@ type TmdbTvDetail = {
   genres: { id: number; name: string }[];
   networks: { name: string }[];
   status: string;
+  seasons?: { season_number: number; name: string; episode_count: number; air_date: string | null }[];
+  last_episode_to_air?: TmdbEpisodeRef | null;
+  next_episode_to_air?: TmdbEpisodeRef | null;
   content_ratings?: { results: { iso_3166_1: string; rating: string }[] };
 };
+
+type TmdbEpisodeRef = { season_number: number; episode_number: number; air_date: string | null };
+
+/**
+ * A season counts as released once its last episode has aired: it is before
+ * the season of the latest aired episode, or that latest episode closes it and
+ * nothing more of it is scheduled. Season 0 (specials) never counts.
+ */
+export function parseSeasons(d: Pick<TmdbTvDetail, "seasons" | "last_episode_to_air" | "next_episode_to_air">): SeasonInfo[] {
+  const today = new Date().toISOString().slice(0, 10);
+  const last = d.last_episode_to_air ?? null;
+  const next = d.next_episode_to_air ?? null;
+  return (d.seasons ?? [])
+    .filter((s) => s.season_number > 0)
+    .filter((s) => s.air_date || s.episode_count > 0)
+    .map((s): SeasonInfo => {
+      const started = Boolean(s.air_date && s.air_date <= today);
+      let aired = 0;
+      if (last && started) {
+        if (s.season_number < last.season_number) aired = s.episode_count;
+        else if (s.season_number === last.season_number) aired = Math.min(last.episode_number, s.episode_count || last.episode_number);
+      }
+      const moreScheduled = next?.season_number === s.season_number;
+      const released = started && s.episode_count > 0 && aired >= s.episode_count && !moreScheduled;
+      return {
+        number: s.season_number,
+        name: s.name || `Temporada ${s.season_number}`,
+        episodes: s.episode_count,
+        aired,
+        year: year(s.air_date),
+        state: released ? "released" : aired > 0 || (started && moreScheduled) ? "airing" : "upcoming",
+      };
+    })
+    .sort((a, b) => a.number - b.number);
+}
 
 type TmdbMovieDetail = {
   id: number;
@@ -249,6 +316,7 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
           })),
         ),
         status: d.status,
+        seasonList: null,
       };
     }
     const d = await tmdb<TmdbTvDetail>(`/tv/${id}`, { append_to_response: "content_ratings" });
@@ -272,6 +340,7 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
         (d.content_ratings?.results ?? []).map((r) => ({ country: r.iso_3166_1, rating: r.rating })),
       ),
       status: d.status,
+      seasonList: parseSeasons(d),
     };
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("TMDB 404")) return null;

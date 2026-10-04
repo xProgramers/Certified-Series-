@@ -7,7 +7,7 @@ import { db, schema } from "@/db";
 import { CONTENT_TYPES, type ContentType } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { certificationFor, titleHref, type CardData } from "@/lib/card-types";
-import { getEntry, nextCollectionNumber, nextViewingNumber, upsertTitle } from "@/lib/data";
+import { getEntry, nextCollectionNumber, nextViewingNumber, releasedSeasons, upsertTitle } from "@/lib/data";
 import { getTitle } from "@/lib/tmdb";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -104,6 +104,18 @@ function findInProgress(userId: string, type: ContentType, id: number) {
   });
 }
 
+/**
+ * Released seasons of a series, fetching its season list first if the cache
+ * has none. Null when TMDB could not tell: a completed entry then keeps
+ * watched_seasons null and gets every released season on the next refresh.
+ */
+async function seasonsReleased(id: number) {
+  const cached = await releasedSeasons(id);
+  if (cached) return cached;
+  await cacheTitle("series", id).catch(() => false);
+  return releasedSeasons(id);
+}
+
 const addSchema = z.object(contentRef);
 
 /** Adds a work to the collection right away, in progress (black & white card, no certification). */
@@ -123,7 +135,10 @@ export async function addToCollection(input: z.input<typeof addSchema>): Promise
 
   let entryId: string;
   try {
-    entryId = await insertEntry(user.id, type, id, { status: "in_progress" });
+    entryId = await insertEntry(user.id, type, id, {
+      status: "in_progress",
+      watchedSeasons: type === "series" ? [] : null,
+    });
   } catch {
     // The one-in-progress index caught a double click
     const again = await findInProgress(user.id, type, id);
@@ -152,12 +167,14 @@ export async function completeEntry(input: z.input<typeof completeSchema>): Prom
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const v = parsed.data;
   const { contentType: type, contentId: id } = v;
+  // Finishing a series means every season released so far was watched
+  const seasons = async () => (type === "series" ? { watchedSeasons: await seasonsReleased(id) } : {});
 
   let entryId = v.entryId;
   if (entryId) {
     const res = await db
       .update(schema.watchEntries)
-      .set({ ...ratedColumns(v), palette: v.palette })
+      .set({ ...ratedColumns(v), palette: v.palette, ...(await seasons()) })
       .where(
         and(
           eq(schema.watchEntries.id, entryId),
@@ -175,16 +192,65 @@ export async function completeEntry(input: z.input<typeof completeSchema>): Prom
       entryId = open.id;
       await db
         .update(schema.watchEntries)
-        .set({ ...ratedColumns(v), palette: v.palette })
+        .set({ ...ratedColumns(v), palette: v.palette, ...(await seasons()) })
         .where(eq(schema.watchEntries.id, open.id));
     } else {
-      entryId = await insertEntry(user.id, type, id, { ...ratedColumns(v), palette: v.palette });
+      entryId = await insertEntry(user.id, type, id, { ...ratedColumns(v), palette: v.palette, ...(await seasons()) });
     }
   }
 
   revalidate(user.username, type, id);
   const card = await getEntry(entryId);
   return card ? { ok: true, data: card } : { ok: false, error: "Erro ao criar o card." };
+}
+
+const seasonsSchema = z.object({
+  /** The entry whose seasons change; omit to add the series to the collection with them. */
+  entryId: z.string().uuid().optional(),
+  contentId: z.number().int().positive(),
+  seasons: z.array(z.number().int().min(1).max(500)).max(500),
+});
+
+/**
+ * Sets which seasons of a series the user finished. Only released seasons can
+ * be marked. With every released season marked a rated card gets its colour
+ * back; an unrated one still waits for its rating.
+ */
+export async function setWatchedSeasons(input: z.input<typeof seasonsSchema>): Promise<Result<CardData>> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Entre na sua conta para marcar temporadas." };
+  const parsed = seasonsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Temporadas inválidas." };
+  const { contentId: id } = parsed.data;
+
+  let entryId = parsed.data.entryId;
+  if (!entryId) {
+    const added = await addToCollection({ contentType: "series", contentId: id });
+    if (!added.ok) return added;
+    entryId = added.data.entryId;
+  }
+
+  const list = await seasonsReleased(id);
+  if (!list) return { ok: false, error: "Não foi possível carregar as temporadas. Tente de novo." };
+  const released = new Set(list);
+  const seasons = [...new Set(parsed.data.seasons)].filter((n) => released.has(n)).sort((a, b) => a - b);
+  const res = await db
+    .update(schema.watchEntries)
+    .set({ watchedSeasons: seasons })
+    .where(
+      and(
+        eq(schema.watchEntries.id, entryId),
+        eq(schema.watchEntries.userId, user.id),
+        eq(schema.watchEntries.contentType, "series"),
+        eq(schema.watchEntries.contentId, id),
+      ),
+    )
+    .returning({ id: schema.watchEntries.id });
+  if (!res.length) return { ok: false, error: "Série não encontrada na sua coleção." };
+
+  revalidate(user.username, "series", id);
+  const card = await getEntry(entryId);
+  return card ? { ok: true, data: card } : { ok: false, error: "Erro ao salvar." };
 }
 
 const updateSchema = z.object({ entryId: z.string().uuid(), ...entryFields });

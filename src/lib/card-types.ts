@@ -1,6 +1,6 @@
-import type { CardPalette, CertificationStatus, ContentType, EntryStatus } from "@/db/schema";
+import type { CardPalette, CertificationStatus, ContentType, EntryStatus, SeasonInfo } from "@/db/schema";
 
-export type { CertificationStatus, ContentType, EntryStatus };
+export type { CertificationStatus, ContentType, EntryStatus, SeasonInfo };
 
 /** Everything the card renderer needs — serializable, no DB types. */
 export type CardData = {
@@ -32,6 +32,12 @@ export type CardData = {
   isFavorite: boolean;
   isPublic: boolean;
   palette: CardPalette | null;
+  /** Series only: the seasons TMDB knows about. */
+  seasonList?: SeasonInfo[] | null;
+  /** Series only: seasons marked as finished (already resolved for legacy entries). */
+  watchedSeasons?: number[] | null;
+  /** Rated series whose card went back to black & white because a new season came out. */
+  newSeason?: boolean;
 };
 
 export const HOUSE_PALETTE: CardPalette = {
@@ -88,4 +94,26 @@ export function formatYears(a: number | null, b: number | null) {
   if (!a) return "";
   if (b && b !== a) return `${a}–${b}`;
   return String(a);
+}
+
+/**
+ * Where a series stands against its released seasons. A series is only
+ * finished (and its card in colour) while every released season is marked;
+ * seasons still airing or announced never count.
+ *   watched null = an entry from before season tracking: a completed one
+ *   counts as having every released season.
+ */
+export function seasonProgress(list: SeasonInfo[] | null | undefined, watched: number[] | null | undefined, rated: boolean) {
+  const released = (list ?? []).filter((s) => s.state === "released").map((s) => s.number);
+  const marked = watched ?? (rated ? released : []);
+  const missing = released.filter((n) => !marked.includes(n));
+  const lastMarked = Math.max(0, ...marked);
+  return {
+    released,
+    watched: marked,
+    missing,
+    done: missing.length === 0,
+    // A season after everything the user had marked: something new came out
+    newSeason: rated && missing.some((n) => n > lastMarked),
+  };
 }

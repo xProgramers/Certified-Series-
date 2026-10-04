@@ -28,6 +28,8 @@ export type MockTitle = {
   /** Series only */
   seasons?: number;
   episodes?: number;
+  /** Series only: a season after `seasons` that is still airing (aired of episodes). */
+  airing?: { episodes: number; aired: number };
   /** Movies only, minutes */
   runtime?: number;
   contentRating?: string;
@@ -64,7 +66,7 @@ const MOCK_SERIES: MockSeries[] = [
   { id: 2316, name: "The Office", overview: "O cotidiano dos funcionários de uma filial de uma empresa de papel em Scranton, Pensilvânia.", firstAirYear: 2005, lastAirYear: 2013, seasons: 9, episodes: 201, genres: ["Comédia"], networks: ["NBC"], status: "Ended", colors: ["#141618", "#5a6a7a", "#f0f0e8"], motif: "stripes" },
   { id: 71912, name: "The Witcher", overview: "Geralt de Rívia, um caçador de monstros mutante, luta para encontrar seu lugar num mundo onde pessoas são mais perversas que feras.", firstAirYear: 2019, seasons: 4, episodes: 32, genres: ["Drama", "Fantasia", "Ação"], networks: ["Netflix"], status: "Returning Series", colors: ["#0c0c10", "#4a4a6a", "#d0d0e8"], motif: "peaks" },
   { id: 67744, name: "Mindhunter", overview: "No fim dos anos 70, dois agentes do FBI entrevistam assassinos em série para entender como eles pensam.", firstAirYear: 2017, lastAirYear: 2019, seasons: 2, episodes: 19, genres: ["Drama", "Crime"], networks: ["Netflix"], status: "Ended", colors: ["#121410", "#5a6a3a", "#e8e0b0"], motif: "eye" },
-  { id: 125988, name: "Silo", overview: "Os últimos dez mil sobreviventes vivem num silo gigante, sem saber quem o construiu nem o que existe lá fora.", firstAirYear: 2023, seasons: 2, episodes: 20, genres: ["Drama", "Ficção científica"], networks: ["Apple TV+"], status: "Returning Series", colors: ["#0e0c0a", "#6a5a40", "#f0d8a0"], motif: "tower" },
+  { id: 125988, name: "Silo", overview: "Os últimos dez mil sobreviventes vivem num silo gigante, sem saber quem o construiu nem o que existe lá fora.", firstAirYear: 2023, seasons: 2, episodes: 20, airing: { episodes: 10, aired: 4 }, genres: ["Drama", "Ficção científica"], networks: ["Apple TV+"], status: "Returning Series", colors: ["#0e0c0a", "#6a5a40", "#f0d8a0"], motif: "tower" },
   { id: 94997, name: "House of the Dragon", overview: "Duzentos anos antes de Game of Thrones, a casa Targaryen se divide numa guerra civil.", firstAirYear: 2022, seasons: 2, episodes: 18, genres: ["Drama", "Fantasia"], networks: ["HBO"], status: "Returning Series", colors: ["#140808", "#8a2a1a", "#f0a060"], motif: "crown" },
   { id: 4607, name: "Lost", overview: "Sobreviventes de um acidente aéreo numa ilha misteriosa precisam aprender a conviver e a sobreviver.", firstAirYear: 2004, lastAirYear: 2010, seasons: 6, episodes: 118, genres: ["Drama", "Mistério", "Aventura"], networks: ["ABC"], status: "Ended", colors: ["#081410", "#1a6a5a", "#e0f0c0"], motif: "waves" },
   { id: 1405, name: "Dexter", overview: "Um perito forense da polícia de Miami leva uma vida dupla como assassino de assassinos.", firstAirYear: 2006, lastAirYear: 2013, seasons: 8, episodes: 96, genres: ["Drama", "Crime", "Mistério"], networks: ["Showtime"], status: "Ended", colors: ["#160808", "#9a1a1a", "#f8d8d0"], motif: "waves" },

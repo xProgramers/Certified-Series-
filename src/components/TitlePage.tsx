@@ -4,13 +4,14 @@ import { Suspense } from "react";
 import type { ContentType } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { formatCardDate, formatRating, formatRuntime, formatYears, titleHref } from "@/lib/card-types";
-import { getLatestEntry, nextCollectionNumber } from "@/lib/data";
+import { backfillWatchedSeasons, getLatestEntry, nextCollectionNumber, upsertTitle } from "@/lib/data";
 import { backdropUrl, posterUrl } from "@/lib/images";
 import { getTitle } from "@/lib/tmdb";
 import { AddButton } from "./AddButton";
 import { CompleteButton, type WorkForCard } from "./CompleteDialog";
 import { OwnedCard } from "./OwnedCard";
 import { RewatchButton } from "./RewatchButton";
+import { SeasonsSection } from "./SeasonsSection";
 import { TitleExtras, TitleExtrasSkeleton } from "./TitleExtras";
 
 /** Title page shared by /series/[id] and /movies/[id]. */
@@ -18,7 +19,19 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
   const [title, user] = await Promise.all([getTitle(type, id), getCurrentUser()]);
   if (!title) notFound();
 
-  const entry = user ? await getLatestEntry(user.id, type, id) : null;
+  let entry = user ? await getLatestEntry(user.id, type, id) : null;
+  if (user && entry && type === "series" && title.seasonList) {
+    // The page just fetched the seasons: store them so a new season shows on the card now
+    await upsertTitle(title);
+    await backfillWatchedSeasons(user.id);
+    entry = await getLatestEntry(user.id, type, id);
+  }
+  // Rated, but a released season is unmarked: the card is back in black & white
+  const pendingSeasons = entry?.status === "in_progress" && entry.rating != null;
+  const missingSeasons =
+    pendingSeasons && entry?.seasonList
+      ? entry.seasonList.filter((s) => s.state === "released" && !entry.watchedSeasons?.includes(s.number)).map((s) => s.number)
+      : [];
   const nextNumber = user ? await nextCollectionNumber(user.id) : 1;
 
   const backdrop = backdropUrl(title.backdropPath, "w1280");
@@ -111,6 +124,10 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
                     variant="text"
                   />
                 </>
+              ) : pendingSeasons ? (
+                <a href="#seasons" className="text-sm text-mute underline-offset-4 hover:text-paper hover:underline">
+                  <span className="text-gold">✦</span> {seasonLabel(missingSeasons, entry.newSeason)}
+                </a>
               ) : entry.status === "in_progress" ? (
                 <CompleteButton work={work} owner={owner} entry={entry} nextNumber={nextNumber} viewingNumber={entry.viewingNumber} />
               ) : (
@@ -128,14 +145,29 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
               <OwnedCard card={entry} />
               <div>
                 <p id="your-card" className="eyebrow">
-                  {entry.status === "in_progress"
-                    ? `Na sua coleção · em andamento desde ${formatCardDate(entry.addedAt)}`
-                    : `Na sua coleção · concluído em ${formatCardDate(entry.completedAt ?? entry.addedAt)}`}
+                  {pendingSeasons
+                    ? `Na sua coleção · ${entry.newSeason ? "nova temporada" : "temporadas pendentes"}`
+                    : entry.status === "in_progress"
+                      ? `Na sua coleção · em andamento desde ${formatCardDate(entry.addedAt)}`
+                      : `Na sua coleção · concluído em ${formatCardDate(entry.completedAt ?? entry.addedAt)}`}
                 </p>
-                {entry.status === "in_progress" ? (
+                {pendingSeasons ? (
                   <>
                     <p className="mt-5 max-w-md font-serif text-3xl italic leading-snug text-paper/90">
-                      O card espera em preto e branco. Quando terminar, ele ganha cor.
+                      {entry.newSeason
+                        ? "Saiu temporada nova. O card voltou ao preto e branco até você marcar que terminou."
+                        : "O card voltou ao preto e branco até todas as temporadas estarem marcadas."}
+                    </p>
+                    <p className="mt-6 font-mono text-sm text-mute">
+                      Sua nota continua guardada: {formatRating(entry.rating ?? 0)} / 10
+                    </p>
+                  </>
+                ) : entry.status === "in_progress" ? (
+                  <>
+                    <p className="mt-5 max-w-md font-serif text-3xl italic leading-snug text-paper/90">
+                      {type === "series"
+                        ? "O card espera em preto e branco. Marque as temporadas que terminou; com todas marcadas, ele ganha cor."
+                        : "O card espera em preto e branco. Quando terminar, ele ganha cor."}
                     </p>
                     <div className="mt-8">
                       <CompleteButton work={work} owner={owner} entry={entry} nextNumber={nextNumber} viewingNumber={entry.viewingNumber} />
@@ -172,10 +204,27 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
           </section>
         )}
 
+        {type === "series" && title.seasonList && title.seasonList.length > 0 && (
+          <SeasonsSection
+            work={work}
+            seasons={title.seasonList}
+            entry={entry}
+            owner={owner}
+            nextNumber={nextNumber}
+            loginHref={`/login?next=${titleHref(type, id)}`}
+          />
+        )}
+
         <Suspense fallback={<TitleExtrasSkeleton />}>
           <TitleExtras type={type} id={id} />
         </Suspense>
       </div>
     </article>
   );
+}
+
+function seasonLabel(missing: number[], isNew?: boolean) {
+  const nums = missing.join(", ").replace(/, (\d+)$/, " e $1");
+  if (isNew) return `${missing.length > 1 ? `Novas temporadas ${nums}` : `Nova temporada ${nums}`} · marque quando terminar`;
+  return missing.length > 1 ? `Falta marcar as temporadas ${nums}` : `Falta marcar a temporada ${nums}`;
 }

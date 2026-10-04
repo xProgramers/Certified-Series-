@@ -77,7 +77,10 @@ export function CollectionView({
   const sections = SECTIONS.filter(([t]) => type === "all" || type === t)
     .map(([t, label]) => {
       const list = shown.filter((c) => c.contentType === t);
-      if (status === "all") list.sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress"));
+      // A series with a new season jumps to the front so it gets noticed,
+      // then what is being watched, then what is already certified
+      const rank = (c: CardData) => (c.newSeason ? 0 : status === "all" && c.status === "in_progress" ? 1 : 2);
+      list.sort((a, b) => rank(a) - rank(b));
       return { type: t, label, list, total: cards.filter((c) => c.contentType === t).length };
     })
     .filter((s) => s.list.length > 0);
@@ -164,6 +167,11 @@ export function CollectionView({
                           <ContentCard card={c} priority={i < 4} />
                         </span>
                       </button>
+                      {c.newSeason && (
+                        <p className="mt-2.5 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-gold">
+                          ✦ Nova temporada
+                        </p>
+                      )}
                     </li>
                   );
                 })}

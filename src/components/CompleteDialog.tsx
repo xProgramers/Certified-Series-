@@ -42,13 +42,23 @@ export function CompleteButton({
   label = "Marcar como concluído",
   variant = "primary",
   hideTrigger,
+  open: openProp,
+  onOpenChange,
   ...flow
 }: FlowProps & {
   label?: string;
   variant?: "primary" | "text";
   hideTrigger?: boolean;
+  /** Controlled mode: open the dialog from outside (e.g. once every season is marked). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (v: boolean) => {
+    setOpenState(v);
+    onOpenChange?.(v);
+  };
   return (
     <>
       {hideTrigger ? null : variant === "primary" ? (

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CollectionView } from "@/components/CollectionView";
 import { getCurrentUser } from "@/lib/auth";
-import { computeStats, getCollection, getUserByUsername } from "@/lib/data";
+import { computeStats, getCollection, getUserByUsername, refreshSeasons } from "@/lib/data";
 
 type Props = PageProps<"/u/[username]">;
 
@@ -22,6 +22,8 @@ export default async function ProfilePage({ params, searchParams }: Props) {
   if (!user) notFound();
 
   const isOwner = viewer?.id === user.id;
+  // New seasons turn finished series back to black & white before the cards are read
+  await refreshSeasons(user.id).catch(() => {});
   const cards = await getCollection(user.id, { includePrivate: isOwner });
   const s = computeStats(cards);
 
