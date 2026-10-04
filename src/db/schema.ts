@@ -39,6 +39,22 @@ export const users = sqliteTable(
 export type ContentType = "series" | "movie";
 export const CONTENT_TYPES = ["series", "movie"] as const;
 
+/**
+ * One season of a series as TMDB reports it (specials / season 0 excluded).
+ *   released → every episode has aired; it counts toward finishing the series
+ *   airing   → some episodes are out, more are coming
+ *   upcoming → announced with a date, nothing aired yet
+ */
+export type SeasonInfo = {
+  number: number;
+  name: string;
+  episodes: number;
+  /** Episodes already aired. */
+  aired: number;
+  year: number | null;
+  state: "released" | "airing" | "upcoming";
+};
+
 export type EntryStatus = "in_progress" | "completed";
 export type CertificationStatus = "certified" | "not_certified";
 
@@ -71,6 +87,10 @@ export const titles = sqliteTable(
     /** Age rating (classificação indicativa), e.g. "16". */
     contentRating: text("content_rating"),
     status: text("status"),
+    /** Seasons of a series, refreshed from TMDB so new seasons are noticed. */
+    seasonList: text("season_list", { mode: "json" }).$type<SeasonInfo[] | null>(),
+    /** When seasonList was last fetched from TMDB. */
+    seasonsCheckedAt: integer("seasons_checked_at", { mode: "timestamp_ms" }),
     ...timestamps,
   },
   (t) => [primaryKey({ columns: [t.type, t.id] })],
@@ -111,6 +131,12 @@ export const watchEntries = sqliteTable(
     /** 1 for the first viewing, 2 for the first rewatch… */
     viewingNumber: integer("viewing_number").notNull().default(1),
     palette: text("palette", { mode: "json" }).$type<CardPalette | null>(),
+    /**
+     * Series only: season numbers the user marked as finished. The card has
+     * colour only while every released season is in here. Null on entries
+     * created before seasons existed, until the first season refresh fills it.
+     */
+    watchedSeasons: text("watched_seasons", { mode: "json" }).$type<number[] | null>(),
     addedAt: integer("added_at", { mode: "timestamp_ms" }).notNull(),
     completedAt: integer("completed_at", { mode: "timestamp_ms" }),
     ...timestamps,

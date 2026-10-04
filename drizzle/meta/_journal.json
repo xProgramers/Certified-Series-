@@ -15,6 +15,13 @@
       "when": 1791108452439,
       "tag": "0001_series_and_movies",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791118052051,
+      "tag": "0002_seasons",
+      "breakpoints": true
     }
   ]
 }

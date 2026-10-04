@@ -18,6 +18,7 @@ import { useCardExport, type ExportFormat } from "./card/CardExport";
 import { CompleteFlow } from "./CompleteDialog";
 import { EntryFields, todayISO, type EntryValues } from "./EntryForm";
 import { CloseButton, Modal } from "./Modal";
+import { SeasonChecklist } from "./SeasonChecklist";
 
 type Props = {
   card: CardData | null;
@@ -28,6 +29,8 @@ type Props = {
   /** Open straight into edit mode. */
   initialMode?: "view" | "edit";
 };
+
+const NO_SEASONS: number[] = [];
 
 export function CardLightbox({ card, isOwner, onClose, onChange, onDelete, initialMode = "view" }: Props) {
   return (
@@ -59,6 +62,9 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
 
   const preview: CardData = mode === "edit" ? { ...card, ...values, completedAt: values.completedAt + "T12:00:00.000Z" } : card;
   const inProgress = card.status === "in_progress";
+  // Rated series whose card went grey again: seasons left to mark, the rating is kept
+  const pendingSeasons = inProgress && card.rating != null;
+  const seasons = card.contentType === "series" ? (card.seasonList ?? []) : [];
 
   const commit = (next: CardData) => {
     setCard(next);
@@ -130,7 +136,7 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
             <>
               <p className="eyebrow">
                 N° {formatCollectionNumber(card.collectionNumber)} · {TYPE_LABEL[card.contentType].one} ·{" "}
-                {inProgress ? `em andamento desde ${formatCardDate(card.addedAt)}` : `concluído em ${formatCardDate(cardDate(card))}`}
+                {pendingSeasons ? (card.newSeason ? "nova temporada" : "temporadas pendentes") : inProgress ? `em andamento desde ${formatCardDate(card.addedAt)}` : `concluído em ${formatCardDate(cardDate(card))}`}
                 {!card.isPublic && " · privado"}
               </p>
               <h2 className="mt-3 font-serif text-4xl leading-[0.95] tracking-tight sm:text-5xl">{card.title}</h2>
@@ -156,10 +162,41 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
               {inProgress ? (
                 isOwner && (
                   <div className="mt-10">
-                    <ActionButton primary onClick={() => setMode("complete")}>
-                      ✓ Marcar como concluído
-                    </ActionButton>
-                    <p className="mt-3 text-sm text-dim">Ao concluir, o card ganha cor e recebe sua nota e reflexão.</p>
+                    {seasons.length > 0 && (
+                      <div className="mb-8">
+                        <p className="eyebrow mb-3">
+                          {card.newSeason ? "Nova temporada · marque quando terminar" : "Temporadas"}
+                        </p>
+                        <SeasonChecklist
+                          compact
+                          editable
+                          contentId={card.contentId}
+                          entryId={card.entryId}
+                          seasons={seasons}
+                          watched={card.watchedSeasons ?? NO_SEASONS}
+                          onSaved={(next, allMarked) => {
+                            commit(next);
+                            if (allMarked && next.rating == null) setMode("complete");
+                          }}
+                        />
+                      </div>
+                    )}
+                    {pendingSeasons ? (
+                      <p className="text-sm text-dim">
+                        Sua nota {formatRating(card.rating ?? 0)} continua guardada. Com todas as temporadas marcadas, o card volta a ter cor.
+                      </p>
+                    ) : (
+                      <>
+                        <ActionButton primary onClick={() => setMode("complete")}>
+                          ✓ Marcar como concluído
+                        </ActionButton>
+                        <p className="mt-3 text-sm text-dim">
+                          {seasons.length > 0
+                            ? "Concluir marca todas as temporadas lançadas. O card ganha cor e recebe sua nota e reflexão."
+                            : "Ao concluir, o card ganha cor e recebe sua nota e reflexão."}
+                        </p>
+                      </>
+                    )}
                   </div>
                 )
               ) : (

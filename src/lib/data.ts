@@ -1,9 +1,9 @@
 import "server-only";
-import { and, desc, eq, max, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, max, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import type { CardPalette, CertificationStatus, ContentType, EntryStatus } from "@/db/schema";
-import type { CardData } from "./card-types";
-import type { TitleDetail } from "./tmdb";
+import type { CardPalette, CertificationStatus, ContentType, EntryStatus, SeasonInfo } from "@/db/schema";
+import { seasonProgress, type CardData } from "./card-types";
+import { getTitle, type TitleDetail } from "./tmdb";
 
 const { users, titles, watchEntries, favorites } = schema;
 
@@ -26,6 +26,7 @@ export async function upsertTitle(d: TitleDetail) {
     networks: d.networks,
     contentRating: d.contentRating,
     status: d.status,
+    ...(d.type === "series" ? { seasonList: d.seasonList, seasonsCheckedAt: new Date() } : {}),
   };
   await db
     .insert(titles)
@@ -45,6 +46,8 @@ const cardSelect = {
   reflection: watchEntries.reflection,
   isPublic: watchEntries.isPublic,
   palette: watchEntries.palette,
+  watchedSeasons: watchEntries.watchedSeasons,
+  seasonList: titles.seasonList,
   addedAt: watchEntries.addedAt,
   completedAt: watchEntries.completedAt,
   title: titles.name,
@@ -72,6 +75,8 @@ type Row = {
   reflection: string;
   isPublic: boolean;
   palette: CardPalette | null;
+  watchedSeasons: number[] | null;
+  seasonList: SeasonInfo[] | null;
   addedAt: Date;
   completedAt: Date | null;
   title: string;
@@ -88,7 +93,11 @@ type Row = {
 };
 
 function toCard(r: Row): CardData {
-  const completed = r.status === "completed" && r.ratingHalves != null;
+  const rated = r.status === "completed" && r.ratingHalves != null;
+  const series = r.contentType === "series";
+  const seasons = series ? seasonProgress(r.seasonList, r.watchedSeasons, rated) : null;
+  // A rated series still goes back to black & white while a released season is unmarked
+  const completed = rated && (seasons?.done ?? true);
   return {
     entryId: r.entryId,
     contentType: r.contentType,
@@ -102,7 +111,7 @@ function toCard(r: Row): CardData {
     posterPath: r.posterPath,
     backdropPath: r.backdropPath,
     status: completed ? "completed" : "in_progress",
-    rating: completed ? r.ratingHalves! / 2 : null,
+    rating: rated ? r.ratingHalves! / 2 : null,
     // An incomplete work is never certified, whatever the row says
     certification: completed ? r.certification : null,
     reflection: r.reflection,
@@ -115,6 +124,9 @@ function toCard(r: Row): CardData {
     isFavorite: r.favId != null,
     isPublic: r.isPublic,
     palette: r.palette,
+    seasonList: series ? r.seasonList : null,
+    watchedSeasons: seasons?.watched ?? null,
+    newSeason: seasons?.newSeason ?? false,
   };
 }
 
@@ -229,4 +241,80 @@ export function computeStats(cards: CardData[]): CollectionStats {
     certified: cards.filter((c) => c.certification === "certified").length,
     notCertified: cards.filter((c) => c.certification === "not_certified").length,
   };
+}
+
+const SEASONS_TTL_AIRING = 12 * 3600 * 1000;
+const SEASONS_TTL_ENDED = 14 * 24 * 3600 * 1000;
+const SEASONS_REFRESH_LIMIT = 20;
+
+/**
+ * Keeps the season lists of a user's series fresh so a new season turns the
+ * card back to black & white. Runs when the collection is opened: only stale
+ * titles are fetched (ended series rarely), a few per visit, and a TMDB
+ * failure never breaks the page.
+ */
+export async function refreshSeasons(userId: string) {
+  const now = Date.now();
+  const stale = await db
+    .selectDistinct({ id: titles.id })
+    .from(watchEntries)
+    .innerJoin(titles, and(eq(titles.type, watchEntries.contentType), eq(titles.id, watchEntries.contentId)))
+    .where(
+      and(
+        eq(watchEntries.userId, userId),
+        eq(watchEntries.contentType, "series"),
+        or(
+          isNull(titles.seasonsCheckedAt),
+          and(sql`${titles.status} in ('Ended', 'Canceled')`, lt(titles.seasonsCheckedAt, new Date(now - SEASONS_TTL_ENDED))),
+          and(
+            sql`coalesce(${titles.status}, '') not in ('Ended', 'Canceled')`,
+            lt(titles.seasonsCheckedAt, new Date(now - SEASONS_TTL_AIRING)),
+          ),
+        ),
+      ),
+    )
+    .limit(SEASONS_REFRESH_LIMIT);
+
+  await Promise.allSettled(
+    stale.map(async ({ id }) => {
+      const detail = await getTitle("series", id);
+      if (detail) await upsertTitle(detail);
+    }),
+  );
+  await backfillWatchedSeasons(userId);
+}
+
+/**
+ * Entries from before season tracking: a completed series gets every season
+ * released today marked, one in progress starts with none.
+ */
+export async function backfillWatchedSeasons(userId: string) {
+  const rows = await db
+    .select({ id: watchEntries.id, status: watchEntries.status, list: titles.seasonList })
+    .from(watchEntries)
+    .innerJoin(titles, and(eq(titles.type, watchEntries.contentType), eq(titles.id, watchEntries.contentId)))
+    .where(
+      and(
+        eq(watchEntries.userId, userId),
+        eq(watchEntries.contentType, "series"),
+        isNull(watchEntries.watchedSeasons),
+        sql`${titles.seasonList} is not null`,
+      ),
+    );
+  for (const r of rows) {
+    const released = (r.list ?? []).filter((s) => s.state === "released").map((s) => s.number);
+    await db
+      .update(watchEntries)
+      .set({ watchedSeasons: r.status === "completed" ? released : [] })
+      .where(and(eq(watchEntries.id, r.id), isNull(watchEntries.watchedSeasons)));
+  }
+}
+
+/** Released season numbers of a series from the title cache; null when it has no season list yet. */
+export async function releasedSeasons(id: number) {
+  const row = await db.query.titles.findFirst({
+    where: and(eq(titles.type, "series"), eq(titles.id, id)),
+    columns: { seasonList: true },
+  });
+  return row?.seasonList ? row.seasonList.filter((s) => s.state === "released").map((s) => s.number) : null;
 }
