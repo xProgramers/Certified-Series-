@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { formatCollectionNumber, HOUSE_PALETTE, type CardData } from "@/lib/card-types";
 import { posterUrl } from "@/lib/images";
 import { extractPalette } from "@/lib/palette";
-import { SeriesCard } from "./SeriesCard";
+import { ContentCard } from "./ContentCard";
 
 export type ExportFormat = "card" | "story";
 
@@ -90,7 +90,7 @@ function ExportStage({ job }: { job: Job }) {
     <div aria-hidden style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none" }}>
       {job.format === "story" ? <StoryLayout card={card} nodeRef={ref} /> : (
         <div ref={ref} className="sc-export" style={{ width: 540, height: 864 }}>
-          <SeriesCard card={card} posterSize="w780" priority />
+          <ContentCard card={card} posterSize="w780" priority />
         </div>
       )}
     </div>,
@@ -158,7 +158,7 @@ function StoryLayout({ card, nodeRef }: { card: CardData; nodeRef: React.RefObje
         Watched · N° {formatCollectionNumber(card.collectionNumber)}
       </div>
       <div style={{ position: "absolute", left: 60, width: 420, top: 148 }}>
-        <SeriesCard card={card} posterSize="w780" priority />
+        <ContentCard card={card} posterSize="w780" priority />
       </div>
       <div
         style={{

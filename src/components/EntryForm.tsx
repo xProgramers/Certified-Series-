@@ -6,7 +6,7 @@ import { RatingInput } from "./RatingInput";
 export type EntryValues = {
   rating: number;
   reflection: string;
-  watchedAt: string; // YYYY-MM-DD
+  completedAt: string; // YYYY-MM-DD
   isPublic: boolean;
 };
 
@@ -71,11 +71,11 @@ export function EntryFields({
           <input
             id={`${id}-d`}
             type="date"
-            value={values.watchedAt}
+            value={values.completedAt}
             max={todayISO()}
             min="1950-01-01"
             required
-            onChange={(e) => set("watchedAt", e.target.value)}
+            onChange={(e) => set("completedAt", e.target.value)}
             className="w-full rounded-xl border border-line bg-ink-0/60 px-4 py-2.5 font-mono text-sm text-paper [color-scheme:dark] focus:border-gold/50 focus:outline-none"
           />
         </div>

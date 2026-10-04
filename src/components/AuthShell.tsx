@@ -1,4 +1,4 @@
-import { SeriesCard } from "@/components/card/SeriesCard";
+import { ContentCard } from "@/components/card/ContentCard";
 import { sampleCards } from "@/lib/sample-cards";
 
 export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
@@ -8,7 +8,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
       <div className="relative hidden lg:block" aria-hidden>
         <div className="absolute inset-0 m-auto h-3/4 w-3/4 rounded-full bg-gold/[0.06] blur-[90px]" />
         <div className="relative mx-auto w-[360px] -rotate-3 sc-reveal">
-          <SeriesCard card={card} priority />
+          <ContentCard card={card} priority />
         </div>
       </div>
       <div className="mx-auto w-full max-w-md rise">

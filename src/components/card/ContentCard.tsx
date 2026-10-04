@@ -3,9 +3,11 @@
 import { useEffect, useId, useState, type CSSProperties } from "react";
 import type { CardPalette } from "@/db/schema";
 import {
+  cardDate,
   formatCardDate,
   formatCollectionNumber,
   formatRating,
+  formatRuntime,
   formatYears,
   HOUSE_PALETTE,
   type CardData,
@@ -48,11 +50,21 @@ function usePalette(card: CardData): CardPalette {
   return card.palette ?? palette ?? HOUSE_PALETTE;
 }
 
-export function SeriesCard({ card, posterSize = "w500", priority, className }: Props) {
+/**
+ * The card — one component for series and movies. Its design is locked; the
+ * only variations are the states:
+ *   in progress   → same card in black & white, no certification
+ *   completed     → full colour + CERTIFIED (rating ≥ 5.0) or NOT CERTIFIED (< 5.0)
+ * Going from in progress to completed fades the colour back in (see .sc filter).
+ */
+export function ContentCard({ card, posterSize = "w500", priority, className }: Props) {
   const palette = usePalette(card);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const src = posterUrl(card.posterPath, posterSize);
-  const years = formatYears(card.firstAirYear, card.lastAirYear);
+  const years = formatYears(card.startYear, card.endYear);
+  const inProgress = card.status === "in_progress" || card.rating == null;
+  const rating = card.rating ?? 0;
+  const date = formatCardDate(cardDate(card));
   const longTitle = card.title.length > 16;
 
   const style = {
@@ -63,11 +75,16 @@ export function SeriesCard({ card, posterSize = "w500", priority, className }: P
     "--reflection-lines": longTitle ? 3 : 4,
   } as CSSProperties;
 
-  const label = `${card.title}, nota ${formatRating(card.rating)} de 10, concluída em ${formatCardDate(card.watchedAt)}`;
+  const label = inProgress
+    ? `${card.title}, em andamento desde ${date}`
+    : `${card.title}, nota ${formatRating(rating)} de 10, concluída em ${date}, ${
+        card.certification === "not_certified" ? "não certificada" : "certificada"
+      }`;
+  const stateClass = inProgress ? "is-progress" : card.certification === "not_certified" ? "is-not-certified" : "";
 
   return (
     <div className={`sc-frame ${className ?? ""}`}>
-      <article className={`sc ${card.isFavorite ? "is-favorite" : ""}`} style={style} aria-label={label}>
+      <article className={`sc ${card.isFavorite ? "is-favorite" : ""} ${stateClass}`} style={style} aria-label={label}>
         <div className="sc-poster">
           {src ? (
             // Plain <img>: served from our own origin so it can be exported to PNG.
@@ -97,7 +114,7 @@ export function SeriesCard({ card, posterSize = "w500", priority, className }: P
               </span>
             )}
           </div>
-          <Stamp id={`stamp${uid}`} viewing={card.viewingNumber} />
+          <Stamp id={`stamp${uid}`} viewing={card.viewingNumber} inProgress={inProgress} />
         </header>
 
         <div className="sc-plate">
@@ -107,26 +124,27 @@ export function SeriesCard({ card, posterSize = "w500", priority, className }: P
           <h3 className="sc-title">{card.title}</h3>
           <div className="sc-meta">
             {years && <span>{years}</span>}
-            {card.seasons ? (
+            {card.contentType === "series" && card.seasons ? (
               <span>
                 {card.seasons} {card.seasons > 1 ? "Seasons" : "Season"}
               </span>
             ) : null}
+            {card.contentType === "movie" && card.runtime ? <span>{formatRuntime(card.runtime)}</span> : null}
           </div>
 
           <div className="sc-rating">
             <div className="sc-score">
-              <b>{formatRating(card.rating)}</b>
+              <b>{inProgress ? "—" : formatRating(rating)}</b>
               <span>/10</span>
             </div>
             <div className="sc-scale" aria-hidden>
               <div className="sc-scale-label">
                 <span>Rating</span>
-                <span>{ratingWord(card.rating)}</span>
+                <span>{inProgress ? "In progress" : ratingWord(rating)}</span>
               </div>
               <div className="sc-bars">
                 {Array.from({ length: 10 }, (_, i) => {
-                  const fill = Math.max(0, Math.min(1, card.rating - i));
+                  const fill = inProgress ? 0 : Math.max(0, Math.min(1, rating - i));
                   return (
                     <div className="sc-bar" key={i}>
                       {fill > 0 && <i style={{ width: `${fill * 100}%` }} />}
@@ -137,18 +155,34 @@ export function SeriesCard({ card, posterSize = "w500", priority, className }: P
             </div>
           </div>
 
-          <blockquote className={`sc-reflection ${card.reflection ? "" : "is-empty"}`}>
-            <p>{card.reflection || "Sem reflexão — a obra fala por si."}</p>
+          <blockquote className={`sc-reflection ${card.reflection && !inProgress ? "" : "is-empty"}`}>
+            <p>
+              {inProgress
+                ? "Em andamento. A reflexão vem depois dos créditos."
+                : card.reflection || "Sem reflexão — a obra fala por si."}
+            </p>
           </blockquote>
 
           <footer className="sc-foot">
             <span>
-              <strong>{card.ownerName}</strong> · {formatCardDate(card.watchedAt)}
+              <strong>{card.ownerName}</strong> · {date}
             </span>
-            <span className="sc-mark">
-              <MarkGlyph />
-              Certified
-            </span>
+            {inProgress ? (
+              <span className="sc-mark">
+                <MarkGlyph kind="progress" />
+                In progress
+              </span>
+            ) : card.certification === "not_certified" ? (
+              <span className="sc-mark">
+                <MarkGlyph kind="not-certified" />
+                Not certified
+              </span>
+            ) : (
+              <span className="sc-mark">
+                <MarkGlyph kind="certified" />
+                Certified
+              </span>
+            )}
           </footer>
         </div>
 
@@ -170,10 +204,14 @@ function ratingWord(r: number) {
   return "Avoid";
 }
 
-function Stamp({ id, viewing }: { id: string; viewing: number }) {
-  const text = viewing > 1 ? `REWATCHED · ${viewing}× · COMPLETED · ` : "COMPLETED · COMPLETED · ";
+function Stamp({ id, viewing, inProgress }: { id: string; viewing: number; inProgress: boolean }) {
+  const text = inProgress
+    ? "IN PROGRESS · IN PROGRESS · "
+    : viewing > 1
+      ? `REWATCHED · ${viewing}× · COMPLETED · `
+      : "COMPLETED · COMPLETED · ";
   return (
-    <div className="sc-stamp" aria-label="Completed">
+    <div className="sc-stamp" aria-label={inProgress ? "In progress" : "Completed"}>
       <svg viewBox="0 0 100 100" aria-hidden>
         <defs>
           <path id={id} d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0" />
@@ -184,24 +222,38 @@ function Stamp({ id, viewing }: { id: string; viewing: number }) {
         <text
           fill="currentColor"
           fontSize="9.4"
-          letterSpacing="2.6"
+          letterSpacing={inProgress ? 1.55 : 2.6}
           style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}
         >
           <textPath href={`#${id}`} startOffset="0">
             {text}
           </textPath>
         </text>
-        <path d="M39 50.5l7.5 7.5L62 42.5" fill="none" stroke="#f3eee6" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        {inProgress ? (
+          // An open ring: the work is not finished yet
+          <path d="M50 39 A11 11 0 1 1 39 50" fill="none" stroke="#f3eee6" strokeWidth="2.6" strokeLinecap="round" />
+        ) : (
+          <path d="M39 50.5l7.5 7.5L62 42.5" fill="none" stroke="#f3eee6" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        )}
       </svg>
     </div>
   );
 }
 
-function MarkGlyph() {
+/** The seal glyph: ✓ certified, ✕ not certified, open ring while in progress. */
+function MarkGlyph({ kind }: { kind: "certified" | "not-certified" | "progress" }) {
   return (
     <svg viewBox="0 0 16 16" aria-hidden>
       <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M5 8.2l2 2 4-4.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      {kind === "certified" && (
+        <path d="M5 8.2l2 2 4-4.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+      {kind === "not-certified" && (
+        <path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      )}
+      {kind === "progress" && (
+        <path d="M8 4.6 A3.4 3.4 0 1 1 4.6 8" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      )}
     </svg>
   );
 }

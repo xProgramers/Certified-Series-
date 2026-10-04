@@ -8,12 +8,15 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "../src/db/schema";
 import { dbAuthToken, dbUrl } from "../src/db/url";
-import { MOCK_CATALOG } from "../src/lib/mock-catalog";
+import type { ContentType } from "../src/db/schema";
+import { certificationFor } from "../src/lib/card-types";
+import { findMock, mockImagePath } from "../src/lib/mock-catalog";
 
 const client = createClient({ url: dbUrl(), authToken: dbAuthToken() });
 const db = drizzle(client, { schema });
 
-const ENTRIES: [number, number, string, string, boolean?][] = [
+// [type, TMDB id, rating (null = in progress), date added/completed, reflection, favorite?]
+const SERIES: [number, number | null, string, string, boolean?][] = [
   [87108, 10, "2026-01-12", "Nunca senti tanto peso em cinco episódios. Sobre o custo das mentiras e as pessoas comuns que pagam por elas."],
   [1396, 9.5, "2025-03-02", "A transformação mais convincente que já vi numa tela. Terminei e fiquei dias pensando em orgulho, e em até onde ele leva alguém.", true],
   [70523, 9.5, "2025-06-21", "Um quebra-cabeça que respeita quem assiste. Saí com a sensação de que o tempo é um personagem.", true],
@@ -31,6 +34,23 @@ const ENTRIES: [number, number, string, string, boolean?][] = [
   [93405, 7.5, "2025-04-11", "Uma crítica brutal embrulhada em cores de parquinho. Difícil de esquecer."],
   [4607, 7, "2024-09-30", ""],
   [2316, 8.5, "2026-09-27", "Rir de vergonha alheia nunca foi tão reconfortante. Os personagens viraram amigos."],
+  [71912, 4, "2026-07-02", "Muito barulho, pouca alma. Terminei por teimosia."],
+  [94997, null, "2026-09-30", ""],
+  [110316, null, "2026-10-02", ""],
+];
+
+const MOVIES: [number, number | null, string, string, boolean?][] = [
+  [496243, 9.5, "2025-10-11", "Uma escada que desce e não para mais. Rir e sentir vergonha ao mesmo tempo.", true],
+  [157336, 9, "2026-01-30", "Saí do cinema olhando para o céu e pensando no meu pai."],
+  [603, 8.5, "2025-05-17", "Envelheceu como uma pergunta, não como efeito especial."],
+  [129, 10, "2026-06-08", "Coragem pequena, do tamanho de uma criança. Perfeito."],
+  [19995, 4.5, "2026-03-14", "Lindo de olhar, vazio de sentir. Saí sem nada para levar comigo."],
+  [872585, null, "2026-10-01", ""],
+];
+
+const ENTRIES: [ContentType, number, number | null, string, string, boolean?][] = [
+  ...SERIES.map((e) => ["series", ...e] as [ContentType, ...typeof e]),
+  ...MOVIES.map((e) => ["movie", ...e] as [ContentType, ...typeof e]),
 ];
 
 async function main() {
@@ -51,40 +71,52 @@ async function main() {
     bio: "Colecionando histórias desde 2024.",
   });
 
-  const sorted = [...ENTRIES].sort((a, b) => a[2].localeCompare(b[2]));
+  const sorted = [...ENTRIES].sort((a, b) => a[3].localeCompare(b[3]));
   let n = 0;
-  for (const [id, rating, date, reflection, fav] of sorted) {
-    const m = MOCK_CATALOG.find((s) => s.id === id)!;
+  for (const [type, id, rating, date, reflection, fav] of sorted) {
+    const m = findMock(type, id)!;
     await db
-      .insert(schema.series)
+      .insert(schema.titles)
       .values({
+        type,
         id: m.id,
         name: m.name,
         originalName: m.originalName ?? null,
         overview: m.overview,
-        posterPath: `mock:${m.id}`,
-        backdropPath: `mock:${m.id}`,
-        firstAirYear: m.firstAirYear,
-        lastAirYear: m.lastAirYear ?? null,
-        numberOfSeasons: m.seasons,
-        numberOfEpisodes: m.episodes,
+        posterPath: mockImagePath(m),
+        backdropPath: mockImagePath(m),
+        startYear: m.firstAirYear,
+        endYear: m.lastAirYear ?? null,
+        numberOfSeasons: m.seasons ?? null,
+        numberOfEpisodes: m.episodes ?? null,
+        runtime: m.runtime ?? null,
         genres: m.genres,
         networks: m.networks,
+        contentRating: m.contentRating ?? null,
         status: m.status,
       })
       .onConflictDoNothing();
+    const at = new Date(date + "T12:00:00Z");
     await db.insert(schema.watchEntries).values({
       id: crypto.randomUUID(),
       userId,
-      seriesId: id,
+      contentType: type,
+      contentId: id,
       collectionNumber: ++n,
       viewingNumber: 1,
-      ratingHalves: rating * 2,
-      reflection,
+      ...(rating == null
+        ? { status: "in_progress" as const, addedAt: at }
+        : {
+            status: "completed" as const,
+            ratingHalves: rating * 2,
+            certificationStatus: certificationFor(rating),
+            reflection,
+            addedAt: new Date(at.getTime() - 14 * 86400000),
+            completedAt: at,
+          }),
       isPublic: true,
-      watchedAt: new Date(date + "T12:00:00Z"),
     });
-    if (fav) await db.insert(schema.favorites).values({ userId, seriesId: id });
+    if (fav) await db.insert(schema.favorites).values({ userId, contentType: type, contentId: id });
   }
   console.log(`Seeded @${username} with ${n} cards (password: certified)`);
 }
