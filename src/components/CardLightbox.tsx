@@ -247,8 +247,8 @@ export function ActionButton({
       {...props}
       className={`rounded-full px-5 py-2.5 text-sm transition-all disabled:opacity-50 ${
         primary
-          ? "bg-paper text-ink-0 hover:bg-white"
-          : "border border-line-strong text-paper hover:border-gold/50 hover:bg-white/[0.03]"
+          ? "bg-paper text-ink-0 hover:bg-hi"
+          : "border border-line-strong text-paper hover:border-gold/50 hover:bg-paper/[0.03]"
       } ${props.className ?? ""}`}
     >
       {children}

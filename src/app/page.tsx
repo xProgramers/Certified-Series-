@@ -32,7 +32,7 @@ export default async function Home() {
           <div className="mt-9 flex flex-wrap items-center gap-6">
             <Link
               href="/signup"
-              className="rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-white"
+              className="rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-hi"
             >
               Começar minha coleção
             </Link>

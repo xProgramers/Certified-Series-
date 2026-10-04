@@ -95,7 +95,7 @@ export function EntryFields({
                 aria-checked={values.isPublic === v}
                 onClick={() => set("isPublic", v as boolean)}
                 className={`flex-1 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                  values.isPublic === v ? "bg-white/[0.08] text-paper" : "text-dim hover:text-mute"
+                  values.isPublic === v ? "bg-paper/[0.08] text-paper" : "text-dim hover:text-mute"
                 }`}
               >
                 {label as string}

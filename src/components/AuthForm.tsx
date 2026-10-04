@@ -55,7 +55,7 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full bg-paper py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-white disabled:opacity-60"
+        className="w-full rounded-full bg-paper py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-hi disabled:opacity-60"
       >
         {pending ? "Um momento…" : mode === "login" ? "Entrar" : "Criar minha coleção"}
       </button>

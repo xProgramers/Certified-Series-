@@ -198,7 +198,7 @@ function ResultGrid({
                   <div className="grid h-full place-items-center p-4 text-center font-serif text-xl text-dim">{s.name}</div>
                 )}
               </div>
-              <h3 className="mt-3 font-serif text-lg leading-tight transition-colors group-hover:text-white sm:text-xl">{s.name}</h3>
+              <h3 className="mt-3 font-serif text-lg leading-tight transition-colors group-hover:text-hi sm:text-xl">{s.name}</h3>
               <p className="mt-1 truncate font-mono text-[11px] tracking-wider text-dim">
                 {[showType ? (s.type === "movie" ? "Filme" : "Série") : null, s.year].filter(Boolean).join(" · ")}
               </p>
