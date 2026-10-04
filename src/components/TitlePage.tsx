@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import type { ContentType } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { formatCardDate, formatRating, formatRuntime, formatYears, titleHref } from "@/lib/card-types";
@@ -10,6 +11,7 @@ import { AddButton } from "./AddButton";
 import { CompleteButton, type WorkForCard } from "./CompleteDialog";
 import { OwnedCard } from "./OwnedCard";
 import { RewatchButton } from "./RewatchButton";
+import { TitleExtras, TitleExtrasSkeleton } from "./TitleExtras";
 
 /** Title page shared by /series/[id] and /movies/[id]. */
 export async function TitlePage({ type, id }: { type: ContentType; id: number }) {
@@ -169,6 +171,10 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
             </div>
           </section>
         )}
+
+        <Suspense fallback={<TitleExtrasSkeleton />}>
+          <TitleExtras type={type} id={id} />
+        </Suspense>
       </div>
     </article>
   );
