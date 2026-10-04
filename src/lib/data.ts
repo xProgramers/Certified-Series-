@@ -50,6 +50,7 @@ const cardSelect = {
   seasonList: titles.seasonList,
   addedAt: watchEntries.addedAt,
   completedAt: watchEntries.completedAt,
+  certifiedAt: watchEntries.certifiedAt,
   title: titles.name,
   startYear: titles.startYear,
   endYear: titles.endYear,
@@ -79,6 +80,7 @@ type Row = {
   seasonList: SeasonInfo[] | null;
   addedAt: Date;
   completedAt: Date | null;
+  certifiedAt: Date | null;
   title: string;
   startYear: number | null;
   endYear: number | null;
@@ -117,6 +119,7 @@ function toCard(r: Row): CardData {
     reflection: r.reflection,
     addedAt: r.addedAt.toISOString(),
     completedAt: completed && r.completedAt ? r.completedAt.toISOString() : null,
+    certifiedAt: completed ? (r.certifiedAt ?? r.completedAt)?.toISOString() ?? null : null,
     collectionNumber: r.collectionNumber,
     viewingNumber: r.viewingNumber,
     ownerName: r.ownerName,

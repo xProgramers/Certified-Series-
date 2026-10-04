@@ -174,7 +174,7 @@ export async function completeEntry(input: z.input<typeof completeSchema>): Prom
   if (entryId) {
     const res = await db
       .update(schema.watchEntries)
-      .set({ ...ratedColumns(v), palette: v.palette, ...(await seasons()) })
+      .set({ ...ratedColumns(v), certifiedAt: new Date(), palette: v.palette, ...(await seasons()) })
       .where(
         and(
           eq(schema.watchEntries.id, entryId),
@@ -192,10 +192,15 @@ export async function completeEntry(input: z.input<typeof completeSchema>): Prom
       entryId = open.id;
       await db
         .update(schema.watchEntries)
-        .set({ ...ratedColumns(v), palette: v.palette, ...(await seasons()) })
+        .set({ ...ratedColumns(v), certifiedAt: new Date(), palette: v.palette, ...(await seasons()) })
         .where(eq(schema.watchEntries.id, open.id));
     } else {
-      entryId = await insertEntry(user.id, type, id, { ...ratedColumns(v), palette: v.palette, ...(await seasons()) });
+      entryId = await insertEntry(user.id, type, id, {
+        ...ratedColumns(v),
+        certifiedAt: new Date(),
+        palette: v.palette,
+        ...(await seasons()),
+      });
     }
   }
 
@@ -234,9 +239,28 @@ export async function setWatchedSeasons(input: z.input<typeof seasonsSchema>): P
   if (!list) return { ok: false, error: "Não foi possível carregar as temporadas. Tente de novo." };
   const released = new Set(list);
   const seasons = [...new Set(parsed.data.seasons)].filter((n) => released.has(n)).sort((a, b) => a - b);
+
+  // A rated series waiting on a new season gets certified again, today, once it is all marked
+  const before = await db.query.watchEntries.findFirst({
+    where: and(eq(schema.watchEntries.id, entryId), eq(schema.watchEntries.userId, user.id)),
+    columns: { status: true, ratingHalves: true, watchedSeasons: true },
+  });
+  const lastMarked = Math.max(0, ...(before?.watchedSeasons ?? []));
+  const recertified =
+    before?.status === "completed" &&
+    before.ratingHalves != null &&
+    before.watchedSeasons != null &&
+    list.some((n) => n > lastMarked) &&
+    list.every((n) => seasons.includes(n));
+  const now = new Date();
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(now);
+
   const res = await db
     .update(schema.watchEntries)
-    .set({ watchedSeasons: seasons })
+    .set({
+      watchedSeasons: seasons,
+      ...(recertified ? { completedAt: new Date(today + "T12:00:00Z"), certifiedAt: now } : {}),
+    })
     .where(
       and(
         eq(schema.watchEntries.id, entryId),
