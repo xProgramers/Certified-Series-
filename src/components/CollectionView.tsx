@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { cardDate, type CardData, type ContentType } from "@/lib/card-types";
+import { cardDate, formatCollectionNumber, type CardData, type ContentType } from "@/lib/card-types";
 import { ContentCard } from "./card/ContentCard";
 import { CardLightbox } from "./CardLightbox";
 
@@ -12,6 +12,11 @@ type StatusFilter = "all" | "in_progress" | "completed" | "fav";
 
 const TYPE_TABS: [TypeFilter, string][] = [
   ["all", "Todos"],
+  ["series", "Séries"],
+  ["movie", "Filmes"],
+];
+
+const SECTIONS: [ContentType, string][] = [
   ["series", "Séries"],
   ["movie", "Filmes"],
 ];
@@ -67,16 +72,16 @@ export function CollectionView({
 
   if (cards.length === 0) return <EmptyCollection isOwner={isOwner} />;
 
-  // "Tudo" keeps what is being watched apart from what is already certified
-  const groups: [string | null, CardData[]][] =
-    status === "all"
-      ? [
-          ["Assistindo agora", shown.filter((c) => c.status === "in_progress")],
-          ["Concluídos", shown.filter((c) => c.status === "completed")],
-        ]
-      : [[null, shown]];
-  const visibleGroups = groups.filter(([, list]) => list.length > 0);
-  const singleGroup = visibleGroups.length === 1;
+  // The collection is a binder with two pages: series and movies. Inside each,
+  // what is being watched comes first, then what is already certified.
+  const sections = SECTIONS.filter(([t]) => type === "all" || type === t)
+    .map(([t, label]) => {
+      const list = shown.filter((c) => c.contentType === t);
+      if (status === "all") list.sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress"));
+      return { type: t, label, list, total: cards.filter((c) => c.contentType === t).length };
+    })
+    .filter((s) => s.list.length > 0);
+  const nextNumber = Math.max(0, ...cards.map((c) => c.collectionNumber)) + 1;
   let index = 0;
 
   return (
@@ -98,7 +103,7 @@ export function CollectionView({
                 aria-pressed={status === key}
                 onClick={() => setStatus(key)}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${
-                  status === key ? "bg-white/[0.09] text-paper" : "text-dim hover:text-mute"
+                  status === key ? "bg-paper/[0.09] text-paper" : "text-dim hover:text-mute"
                 }`}
               >
                 {label} <span className="ml-0.5 font-mono text-[11px] text-dim">{count(key)}</span>
@@ -120,36 +125,63 @@ export function CollectionView({
         </div>
       </div>
 
-      {visibleGroups.length === 0 ? (
+      {sections.length === 0 ? (
         <p className="py-24 text-center font-serif text-2xl italic text-mute">{emptyLine(status, type)}</p>
       ) : (
-        <div className="space-y-16 sm:space-y-20">
-          {visibleGroups.map(([title, list]) => (
-            <div key={title ?? "all"}>
-              {title && !singleGroup && <h2 className="eyebrow mb-6 sm:mb-8">{title}</h2>}
+        <div className="space-y-20 sm:space-y-28">
+          {sections.map((sec) => (
+            <section key={sec.type} aria-labelledby={`sec-${sec.type}`}>
+              <header className="binder-head mb-8 sm:mb-10">
+                <h2 id={`sec-${sec.type}`} className="font-serif text-[clamp(2rem,4vw,2.75rem)] leading-none tracking-tight">
+                  {sec.label}
+                </h2>
+                <span className="binder-rule" aria-hidden />
+                <p className="shrink-0 font-mono text-[10px] uppercase tracking-[0.28em] text-dim sm:text-[11px]">
+                  {sec.list.length === sec.total
+                    ? `${sec.total} ${sec.total === 1 ? "card" : "cards"}`
+                    : `${sec.list.length} de ${sec.total}`}
+                </p>
+              </header>
               <ul className="card-grid">
-                {list.map((c) => {
+                {sec.list.map((c) => {
                   const i = index++;
                   return (
                     <li
                       key={c.entryId}
                       id={`card-${c.entryId}`}
-                      className={c.entryId === highlight ? "sc-reveal" : "rise"}
+                      className={`${c.entryId === highlight ? "sc-reveal" : "rise"}`}
                       style={c.entryId === highlight ? undefined : { animationDelay: `${Math.min(i * 50, 600)}ms` }}
                     >
                       <button
                         type="button"
                         onClick={() => setOpen(c)}
+                        onPointerMove={tilt}
+                        onPointerLeave={untilt}
                         className="sc-interactive block w-full text-left"
                         aria-label={`Abrir card de ${c.title}`}
                       >
-                        <ContentCard card={c} priority={i < 4} />
+                        <span className="card-tilt">
+                          <ContentCard card={c} priority={i < 4} />
+                        </span>
                       </button>
                     </li>
                   );
                 })}
+                {isOwner && status !== "fav" && (
+                  <li className="rise" style={{ animationDelay: `${Math.min(index * 50, 600)}ms` }}>
+                    <Link href={`/search?tipo=${sec.type === "movie" ? "filmes" : "series"}`} className="empty-slot">
+                      <span className="empty-slot-plus" aria-hidden>
+                        +
+                      </span>
+                      <span className="mt-3 text-sm text-mute">{sec.type === "movie" ? "Adicionar filme" : "Adicionar série"}</span>
+                      <span className="mt-1 font-mono text-[10px] tracking-[0.3em] text-dim">
+                        N° {formatCollectionNumber(nextNumber)}
+                      </span>
+                    </Link>
+                  </li>
+                )}
               </ul>
-            </div>
+            </section>
           ))}
         </div>
       )}
@@ -163,6 +195,24 @@ export function CollectionView({
       />
     </section>
   );
+}
+
+/** Collectible-card tilt: the card leans toward the pointer and catches the light. */
+function tilt(e: React.PointerEvent<HTMLElement>) {
+  if (e.pointerType !== "mouse") return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  const y = (e.clientY - r.top) / r.height;
+  const s = e.currentTarget.style;
+  s.setProperty("--rx", `${((0.5 - y) * 9).toFixed(2)}deg`);
+  s.setProperty("--ry", `${((x - 0.5) * 11).toFixed(2)}deg`);
+  s.setProperty("--mx", `${(x * 100).toFixed(1)}%`);
+  s.setProperty("--my", `${(y * 100).toFixed(1)}%`);
+}
+
+function untilt(e: React.PointerEvent<HTMLElement>) {
+  const s = e.currentTarget.style;
+  for (const k of ["--rx", "--ry", "--mx", "--my"]) s.removeProperty(k);
 }
 
 const EMPTY: Record<Exclude<StatusFilter, "fav">, Record<TypeFilter, string>> = {
@@ -192,7 +242,7 @@ function EmptyCollection({ isOwner }: { isOwner: boolean }) {
             </p>
             <Link
               href="/search"
-              className="mt-8 inline-flex rounded-full bg-paper px-6 py-3 text-sm text-ink-0 transition-colors hover:bg-white"
+              className="mt-8 inline-flex rounded-full bg-paper px-6 py-3 text-sm text-ink-0 transition-colors hover:bg-hi"
             >
               Buscar séries e filmes
             </Link>

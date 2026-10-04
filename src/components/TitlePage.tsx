@@ -93,7 +93,7 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
               {!owner ? (
                 <Link
                   href={`/login?next=${titleHref(type, id)}`}
-                  className="inline-flex rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-white"
+                  className="inline-flex rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-hi"
                 >
                   Entre para adicionar à coleção
                 </Link>

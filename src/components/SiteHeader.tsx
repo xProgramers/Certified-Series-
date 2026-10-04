@@ -2,6 +2,7 @@ import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
 import { Wordmark } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
@@ -25,6 +26,7 @@ export async function SiteHeader() {
                 <SearchIcon />
                 <span className="hidden sm:inline">Buscar</span>
               </Link>
+              <ThemeToggle />
               <form action={logout}>
                 <button className="px-2 py-2 text-dim transition-colors hover:text-paper" type="submit">
                   Sair
@@ -36,12 +38,13 @@ export async function SiteHeader() {
               <Link href="/search" aria-label="Buscar" className="px-2 py-2 text-mute transition-colors hover:text-paper">
                 <SearchIcon />
               </Link>
+              <ThemeToggle />
               <Link href="/login" className="whitespace-nowrap px-2 py-2 text-mute transition-colors hover:text-paper">
                 Entrar
               </Link>
               <Link
                 href="/signup"
-                className="whitespace-nowrap rounded-full bg-paper px-4 py-2 text-ink-0 transition-colors hover:bg-white"
+                className="whitespace-nowrap rounded-full bg-paper px-4 py-2 text-ink-0 transition-colors hover:bg-hi"
               >
                 Criar coleção
               </Link>

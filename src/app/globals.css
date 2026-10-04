@@ -14,6 +14,10 @@
   --color-dim: #6b665f;
   --color-gold: #c9b07a;
   --color-danger: #e0796b;
+  /* Hover for solid "paper" buttons: one step brighter than paper */
+  --color-hi: #ffffff;
+  /* Top-of-page spotlight, like a lit display wall */
+  --color-spot: rgb(201 176 122 / 0.07);
 
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -24,6 +28,28 @@
 
 :root {
   color-scheme: dark;
+}
+
+/*
+ * Light theme: a bright gallery wall. Only the UI around the cards changes;
+ * the cards keep their own palette (they define their colours locally).
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-ink-0: #f2eee7;
+  --color-ink-1: #ebe6dd;
+  --color-ink-2: #e4ded3;
+  --color-ink-3: #dbd4c7;
+  --color-ink-4: #cec6b6;
+  --color-line: rgb(28 24 18 / 0.1);
+  --color-line-strong: rgb(28 24 18 / 0.2);
+  --color-paper: #1a1814;
+  --color-mute: #5d584f;
+  --color-dim: #857f74;
+  --color-gold: #8a6f35;
+  --color-danger: #b4483a;
+  --color-hi: #000000;
+  --color-spot: rgb(255 255 255 / 0.7);
 }
 
 html {
@@ -40,7 +66,6 @@ body {
 
 ::selection {
   background: rgb(201 176 122 / 0.35);
-  color: #fff;
 }
 
 @layer base {
@@ -144,7 +169,7 @@ body {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.04), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-paper) 4%, transparent), transparent);
   animation: shimmer 1.6s infinite;
 }
 
@@ -159,11 +184,11 @@ body {
 }
 .rating-range::-webkit-slider-runnable-track {
   height: 2px;
-  background: linear-gradient(90deg, var(--color-gold) var(--fill, 50%), rgb(255 255 255 / 0.14) var(--fill, 50%));
+  background: linear-gradient(90deg, var(--color-gold) var(--fill, 50%), var(--color-line-strong) var(--fill, 50%));
 }
 .rating-range::-moz-range-track {
   height: 2px;
-  background: rgb(255 255 255 / 0.14);
+  background: var(--color-line-strong);
 }
 .rating-range::-moz-range-progress {
   height: 2px;
@@ -221,4 +246,119 @@ body {
   .fade-in {
     animation: none;
   }
+}
+
+/* ——— Theme switch ——— */
+.theme-icon-moon {
+  display: none;
+}
+:root[data-theme="light"] .theme-icon-sun {
+  display: none;
+}
+:root[data-theme="light"] .theme-icon-moon {
+  display: block;
+}
+/* A short cross-fade when switching, without animating every hover in the app */
+.theme-switching,
+.theme-switching *:not(.sc):not(.sc *) {
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease,
+    border-color 0.4s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-switching,
+  .theme-switching * {
+    transition: none !important;
+  }
+}
+
+/* ——— Collection as a card binder ——— */
+
+/* Soft light from above, like a display wall in a gallery */
+.spotlight {
+  background: radial-gradient(ellipse 80% 520px at 50% -120px, var(--color-spot), transparent 70%);
+}
+
+/* Section title — rule — count, like a page divider in a binder */
+.binder-head {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+}
+.binder-rule {
+  flex: 1;
+  height: 1px;
+  align-self: center;
+  background: linear-gradient(90deg, var(--color-line-strong), var(--color-line) 70%, transparent);
+}
+
+/* The card leans toward the pointer and catches the light */
+.card-tilt {
+  display: block;
+  position: relative;
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.6s var(--ease-cinema);
+  will-change: transform;
+}
+.card-tilt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  /* Same corner as the card (3.2% of its width) on a 5:8 box */
+  border-radius: 3.2% / 2%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgb(255 255 255 / 0.2), transparent 55%);
+  mix-blend-mode: soft-light;
+  transition: opacity 0.5s ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .sc-interactive:hover .card-tilt {
+    transition: transform 0.15s linear;
+  }
+  .sc-interactive:hover .card-tilt::after {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-tilt {
+    transform: none;
+  }
+}
+
+/* The next free slot in the binder (owner only) */
+.empty-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 5 / 8;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 3.2% / 2%;
+  text-align: center;
+  transition:
+    border-color 0.4s,
+    background-color 0.4s;
+}
+.empty-slot:hover {
+  border-color: color-mix(in srgb, var(--color-gold) 55%, transparent);
+  background: color-mix(in srgb, var(--color-paper) 3%, transparent);
+}
+.empty-slot-plus {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: var(--color-mute);
+  transition: color 0.4s, border-color 0.4s;
+}
+.empty-slot:hover .empty-slot-plus {
+  color: var(--color-gold);
+  border-color: color-mix(in srgb, var(--color-gold) 55%, transparent);
 }

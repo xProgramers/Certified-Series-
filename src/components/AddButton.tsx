@@ -46,7 +46,7 @@ export function AddButton({
 
   if (!signedIn) {
     return (
-      <Link href={`/login?next=/search`} className={`${base} ${primary ? "bg-paper text-ink-0 hover:bg-white" : "text-mute hover:text-paper"}`}>
+      <Link href={`/login?next=/search`} className={`${base} ${primary ? "bg-paper text-ink-0 hover:bg-hi" : "text-mute hover:text-paper"}`}>
         <Plus /> Adicionar
       </Link>
     );
@@ -79,7 +79,7 @@ export function AddButton({
         onClick={add}
         disabled={pending}
         className={`${base} ${
-          primary ? "bg-paper text-ink-0 hover:bg-white" : "bg-white/[0.06] text-paper hover:bg-white/[0.12]"
+          primary ? "bg-paper text-ink-0 hover:bg-hi" : "bg-paper/[0.06] text-paper hover:bg-paper/[0.12]"
         } disabled:opacity-60`}
       >
         <Plus /> {pending ? "Adicionando…" : primary ? "Adicionar à coleção" : "Adicionar"}

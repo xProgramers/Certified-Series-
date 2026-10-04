@@ -55,7 +55,7 @@ export function CompleteButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2.5 rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-white"
+          className="inline-flex items-center gap-2.5 rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-hi"
         >
           <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>
             <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -161,7 +161,7 @@ export function CompleteFlow({ work, owner, entry, nextNumber, viewingNumber, on
             <Link
               href={`/u/${owner.username}?new=${created.entryId}`}
               onClick={onClose}
-              className="rounded-full bg-paper px-5 py-2.5 text-sm text-ink-0 transition-colors hover:bg-white"
+              className="rounded-full bg-paper px-5 py-2.5 text-sm text-ink-0 transition-colors hover:bg-hi"
             >
               Ver na coleção
             </Link>
@@ -209,7 +209,7 @@ export function CompleteFlow({ work, owner, entry, nextNumber, viewingNumber, on
             <button
               type="submit"
               disabled={pending}
-              className="rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-white disabled:opacity-60"
+              className="rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-hi disabled:opacity-60"
             >
               {pending ? "Salvando…" : "Concluir e salvar card"}
             </button>
