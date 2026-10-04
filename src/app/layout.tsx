@@ -15,6 +15,8 @@ const instrument = Instrument_Serif({
 export const metadata: Metadata = {
   title: { default: "Certified Series — seu repertório, em cartaz", template: "%s · Certified Series" },
   description: "Cada série que você termina vira um card na sua coleção pessoal.",
+  applicationName: "Certified Series",
+  appleWebApp: { capable: true, title: "Certified", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
