@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { MatchCard, MatchOutcome, RoundResult } from "../lib/arena-game";
 import {
   foreignKey,
   index,
@@ -177,6 +178,29 @@ export const favorites = sqliteTable(
     primaryKey({ columns: [t.userId, t.contentType, t.contentId] }),
     foreignKey({ columns: [t.contentType, t.contentId], foreignColumns: [titles.type, titles.id] }),
   ],
+);
+
+/**
+ * An Arena match against the computer. Both decks are frozen with the stats
+ * they had at the start; rounds are resolved on the server and appended here.
+ */
+export const arenaMatches = sqliteTable(
+  "arena_matches",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Challenge key, e.g. "suspense". */
+    challenge: text("challenge").notNull(),
+    playerDeck: text("player_deck", { mode: "json" }).$type<MatchCard[]>().notNull(),
+    opponentDeck: text("opponent_deck", { mode: "json" }).$type<MatchCard[]>().notNull(),
+    rounds: text("rounds", { mode: "json" }).$type<RoundResult[]>().notNull().default([]),
+    /** playing until the fifth round, then won / lost / draw. */
+    status: text("status").$type<"playing" | MatchOutcome>().notNull().default("playing"),
+    ...timestamps,
+  },
+  (t) => [index("arena_matches_user_idx").on(t.userId, t.createdAt)],
 );
 
 export type User = typeof users.$inferSelect;

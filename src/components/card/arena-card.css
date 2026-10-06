@@ -4,34 +4,6 @@
  * base colour and the stats take its place.
  */
 
-/* ——— Flip ——— */
-.ac {
-  perspective: 1800px;
-}
-.ac-inner {
-  position: relative;
-  aspect-ratio: 5 / 8;
-  transform-style: preserve-3d;
-  transition: transform 0.85s cubic-bezier(0.3, 0.7, 0.2, 1);
-}
-.ac.is-flipped .ac-inner {
-  transform: rotateY(180deg);
-}
-.ac-face {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.ac-back {
-  transform: rotateY(180deg);
-}
-@media (prefers-reduced-motion: reduce) {
-  .ac-inner {
-    transition: none;
-  }
-}
-
 /* ——— Back ——— */
 .ab-poster {
   position: absolute;
