@@ -36,6 +36,13 @@
       "when": 1791319512774,
       "tag": "0004_arena_votes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791321398907,
+      "tag": "0005_arena_matches",
+      "breakpoints": true
     }
   ]
 }
