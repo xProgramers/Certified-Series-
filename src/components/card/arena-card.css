@@ -200,19 +200,65 @@
   flex-direction: column;
 }
 .ab-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 1.2cqw;
   font-family: var(--font-mono);
   font-size: 2.2cqw;
   letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: rgb(243 238 230 / 0.5);
+  color: rgb(243 238 230 / 0.55);
 }
-.ab-stat b {
-  margin-top: 1.4cqw;
-  font-family: var(--font-serif);
+.ab-stat-label svg {
+  width: 2.8cqw;
+  height: 2.8cqw;
+  color: var(--accent);
+}
+
+/*
+ * The numbers: condensed poster type, slanted like an action-movie title,
+ * filled with a gilded gradient (light → the card's accent → a dark band →
+ * light again, like stamped metal) over a hard cut-out shadow in the accent.
+ */
+.ab-num {
+  position: relative;
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 1.6cqw;
+  padding-right: 2cqw;
+  font-family: var(--font-display);
   font-weight: 400;
-  font-size: 19cqw;
-  line-height: 0.82;
-  letter-spacing: -0.03em;
+  font-size: 21cqw;
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  transform: skewX(-7deg);
+  transform-origin: bottom left;
+}
+.ab-num span {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    #fffaf0 0%,
+    color-mix(in srgb, var(--accent) 35%, #fffaf0) 38%,
+    color-mix(in srgb, var(--accent) 80%, #000) 52%,
+    var(--accent) 60%,
+    color-mix(in srgb, var(--accent) 40%, #fffaf0) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 2.4cqw color-mix(in srgb, var(--accent) 45%, transparent));
+}
+/* Cut-out shadow: an outlined copy pushed down and right */
+.ab-num::before {
+  content: attr(data-v);
+  position: absolute;
+  left: 0.9cqw;
+  top: 0.9cqw;
+  z-index: 0;
+  color: color-mix(in srgb, var(--base) 70%, #000);
+  -webkit-text-stroke: max(1px, 0.35cqw) color-mix(in srgb, var(--accent) 75%, transparent);
 }
 .ab-meter {
   margin-top: 3cqw;

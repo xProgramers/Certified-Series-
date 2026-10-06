@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Anton, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { SiteHeader } from "@/components/SiteHeader";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Condensed poster type for the Arena numbers
+const anton = Anton({ variable: "--font-anton", subsets: ["latin"], weight: "400" });
 const instrument = Instrument_Serif({
   variable: "--font-instrument",
   subsets: ["latin"],
@@ -29,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // data-theme is set by the inline script before paint, hence suppressHydrationWarning
     <html
       lang="pt-BR"
-      className={`${geist.variable} ${geistMono.variable} ${instrument.variable} h-full antialiased`}
+      className={`${geist.variable} ${geistMono.variable} ${instrument.variable} ${anton.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

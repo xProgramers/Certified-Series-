@@ -85,8 +85,8 @@ export function ArenaCardBack({ card }: { card: CardData }) {
           </div>
 
           <div className="ab-stats">
-            <Stat label="Power" value={stats?.power ?? null} />
-            <Stat label="Defense" value={stats?.defense ?? null} />
+            <Stat kind="power" value={stats?.power ?? null} />
+            <Stat kind="defense" value={stats?.defense ?? null} />
           </div>
 
           <footer className="ab-foot">
@@ -102,13 +102,32 @@ export function ArenaCardBack({ card }: { card: CardData }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number | null }) {
+/** A stat set like a film title card: condensed poster type, gilded, with a cut-out shadow. */
+export function Stat({ kind, value }: { kind: "power" | "defense"; value: number | null }) {
+  const text = value == null ? "—" : String(value);
   return (
-    <div className="ab-stat">
-      <span className="ab-stat-label">{label}</span>
-      <b>{value ?? "—"}</b>
+    <div className={`ab-stat is-${kind}`}>
+      <span className="ab-stat-label">
+        <StatIcon kind={kind} />
+        {kind === "power" ? "Power" : "Defense"}
+      </span>
+      <b className="ab-num" data-v={text}>
+        <span>{text}</span>
+      </b>
       <div className="ab-meter">{value != null && <i style={{ width: `${value}%` }} />}</div>
     </div>
+  );
+}
+
+export function StatIcon({ kind }: { kind: "power" | "defense" }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden>
+      {kind === "power" ? (
+        <path d="M9.2 1.2L3.4 9h4.2l-.8 5.8L12.6 7H8.4z" fill="currentColor" />
+      ) : (
+        <path d="M8 1.3l5.4 2v4.2c0 3.3-2.3 5.9-5.4 7.2-3.1-1.3-5.4-3.9-5.4-7.2V3.3z" fill="currentColor" />
+      )}
+    </svg>
   );
 }
 
