@@ -193,86 +193,125 @@
   border-top: max(1px, 0.2cqw) solid rgb(243 238 230 / 0.12);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6cqw;
+  gap: 3.6cqw;
 }
-.ab-stat {
+/*
+ * The stats are cinema tickets. Notches are cut with a mask on each half;
+ * the paper is tinted with the card's accent (Power) or a cooler silver
+ * (Defense), with a fine guilloche, a foil sheen and a perforated stub.
+ */
+.tk {
+  --ink: var(--accent);
+  position: relative;
+  display: flex;
+  height: 21cqw;
+  border-radius: 1.2cqw;
+  color: #fff8ea;
+  background:
+    linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.1) 42%, transparent 52%),
+    repeating-radial-gradient(circle at 120% 50%, transparent 0 0.9cqw, color-mix(in srgb, var(--ink) 14%, transparent) 0.9cqw 1.05cqw),
+    linear-gradient(160deg, color-mix(in srgb, var(--ink) 34%, #1a1612), color-mix(in srgb, var(--ink) 12%, #0c0b0a));
+  box-shadow: inset 0 0 0 max(1px, 0.22cqw) color-mix(in srgb, var(--ink) 55%, transparent);
+}
+/* Punched notches on both edges, in the card's base colour */
+.tk::before,
+.tk::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 3.4cqw;
+  height: 3.4cqw;
+  margin-top: -1.7cqw;
+  border-radius: 50%;
+  background: var(--base);
+  box-shadow: inset 0 0 0 max(1px, 0.22cqw) color-mix(in srgb, var(--ink) 55%, transparent);
+  z-index: 1;
+}
+.tk::before {
+  left: -1.7cqw;
+  clip-path: inset(0 0 0 50%);
+}
+.tk::after {
+  right: -1.7cqw;
+  clip-path: inset(0 50% 0 0);
+}
+.tk.is-defense {
+  --ink: color-mix(in srgb, var(--accent) 35%, #b7c2cc);
+}
+
+/* Tear-off stub: ADMIT ONE read bottom-up, then a perforated line */
+.tk-stub {
+  position: relative;
+  width: 6.4cqw;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.tk-stub span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--font-mono);
+  font-size: 1.6cqw;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--ink) 75%, #fff);
+}
+.tk-stub::after {
+  content: "";
+  position: absolute;
+  top: 1.6cqw;
+  bottom: 1.6cqw;
+  right: 0;
+  width: 0.5cqw;
+  background: radial-gradient(circle, color-mix(in srgb, var(--base) 85%, #000) 0.22cqw, transparent 0.3cqw) 0 0 / 0.5cqw 1.3cqw repeat-y;
+}
+
+.tk-body {
+  flex: 1;
+  min-width: 0;
+  padding: 2.1cqw 2.4cqw 1.8cqw 2.8cqw;
   display: flex;
   flex-direction: column;
 }
-.ab-stat-label {
+.tk-name {
   display: flex;
   align-items: center;
-  gap: 1.2cqw;
+  gap: 1cqw;
   font-family: var(--font-mono);
-  font-size: 2.2cqw;
-  letter-spacing: 0.34em;
+  font-size: 1.9cqw;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: rgb(243 238 230 / 0.55);
+  color: rgb(255 248 234 / 0.72);
 }
-.ab-stat-label svg {
-  width: 2.8cqw;
-  height: 2.8cqw;
-  color: var(--accent);
+.tk-name svg {
+  width: 2.3cqw;
+  height: 2.3cqw;
+  color: color-mix(in srgb, var(--ink) 70%, #fff);
 }
-
-/*
- * The numbers: condensed poster type, slanted like an action-movie title,
- * filled with a gilded gradient (light → the card's accent → a dark band →
- * light again, like stamped metal) over a hard cut-out shadow in the accent.
- */
-.ab-num {
-  position: relative;
-  display: inline-block;
-  align-self: flex-start;
-  margin-top: 1.6cqw;
-  padding-right: 2cqw;
-  font-family: var(--font-display);
+/* Foil numeral: italic serif with a light-metal gradient and a soft glow */
+.tk-num {
+  margin-top: auto;
+  font-family: var(--font-serif);
+  font-style: italic;
   font-weight: 400;
-  font-size: 21cqw;
-  line-height: 0.9;
-  letter-spacing: 0.01em;
-  transform: skewX(-7deg);
-  transform-origin: bottom left;
-}
-.ab-num span {
-  position: relative;
-  z-index: 1;
-  background: linear-gradient(
-    180deg,
-    #fffaf0 0%,
-    color-mix(in srgb, var(--accent) 35%, #fffaf0) 38%,
-    color-mix(in srgb, var(--accent) 80%, #000) 52%,
-    var(--accent) 60%,
-    color-mix(in srgb, var(--accent) 40%, #fffaf0) 100%
-  );
+  font-size: 11.5cqw;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  background: linear-gradient(180deg, #fffaf0 15%, color-mix(in srgb, var(--ink) 45%, #fffaf0) 60%, color-mix(in srgb, var(--ink) 80%, #fff) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 2.4cqw color-mix(in srgb, var(--accent) 45%, transparent));
+  filter: drop-shadow(0 0 1.6cqw color-mix(in srgb, var(--ink) 50%, transparent));
+  padding-right: 1cqw;
 }
-/* Cut-out shadow: an outlined copy pushed down and right */
-.ab-num::before {
-  content: attr(data-v);
-  position: absolute;
-  left: 0.9cqw;
-  top: 0.9cqw;
-  z-index: 0;
-  color: color-mix(in srgb, var(--base) 70%, #000);
-  -webkit-text-stroke: max(1px, 0.35cqw) color-mix(in srgb, var(--accent) 75%, transparent);
-}
-.ab-meter {
-  margin-top: 3cqw;
-  height: 1.1cqw;
-  border-radius: 0.3cqw;
-  background: rgb(243 238 230 / 0.12);
-  position: relative;
-  overflow: hidden;
-}
-.ab-meter i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: var(--accent);
-  box-shadow: 0 0 2cqw color-mix(in srgb, var(--accent) 60%, transparent);
+.tk-serial {
+  margin-top: 1cqw;
+  font-family: var(--font-mono);
+  font-size: 1.5cqw;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgb(255 248 234 / 0.42);
 }
 
 .ab-foot {

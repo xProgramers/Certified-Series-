@@ -85,8 +85,8 @@ export function ArenaCardBack({ card }: { card: CardData }) {
           </div>
 
           <div className="ab-stats">
-            <Stat kind="power" value={stats?.power ?? null} />
-            <Stat kind="defense" value={stats?.defense ?? null} />
+            <Ticket kind="power" value={stats?.power ?? null} serial={card.collectionNumber} />
+            <Ticket kind="defense" value={stats?.defense ?? null} serial={card.collectionNumber} />
           </div>
 
           <footer className="ab-foot">
@@ -102,19 +102,27 @@ export function ArenaCardBack({ card }: { card: CardData }) {
   );
 }
 
-/** A stat set like a film title card: condensed poster type, gilded, with a cut-out shadow. */
-export function Stat({ kind, value }: { kind: "power" | "defense"; value: number | null }) {
-  const text = value == null ? "—" : String(value);
+/**
+ * A stat printed as a cinema ticket: tear-off stub with ADMIT ONE, notched
+ * edges, foil numeral in italic serif and a serial like a real ticket.
+ */
+export function Ticket({ kind, value, serial }: { kind: "power" | "defense"; value: number | null; serial: number }) {
+  const name = kind === "power" ? "Power" : "Defense";
   return (
-    <div className={`ab-stat is-${kind}`}>
-      <span className="ab-stat-label">
-        <StatIcon kind={kind} />
-        {kind === "power" ? "Power" : "Defense"}
-      </span>
-      <b className="ab-num" data-v={text}>
-        <span>{text}</span>
-      </b>
-      <div className="ab-meter">{value != null && <i style={{ width: `${value}%` }} />}</div>
+    <div className={`tk is-${kind}`}>
+      <div className="tk-stub" aria-hidden>
+        <span>Admit one</span>
+      </div>
+      <div className="tk-body">
+        <span className="tk-name">
+          <StatIcon kind={kind} />
+          {name}
+        </span>
+        <b className="tk-num">{value ?? "—"}</b>
+        <span className="tk-serial">
+          N° {formatCollectionNumber(serial)}·{kind === "power" ? "P" : "D"}
+        </span>
+      </div>
     </div>
   );
 }
