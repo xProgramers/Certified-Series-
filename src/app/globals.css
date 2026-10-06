@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../components/card/content-card.css";
+@import "../components/card/arena-card.css";
 
 @theme {
   --color-ink-0: #0a0a0b;

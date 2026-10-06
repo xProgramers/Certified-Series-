@@ -33,7 +33,7 @@ function titleSize(title: string) {
 }
 
 /** Uses the stored palette; extracts one client-side only when none was saved. */
-function usePalette(card: CardData): CardPalette {
+export function usePalette(card: CardData): CardPalette {
   const [palette, setPalette] = useState<CardPalette | null>(card.palette);
   useEffect(() => {
     if (card.palette) return;

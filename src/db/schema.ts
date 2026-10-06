@@ -4,6 +4,7 @@ import {
   index,
   integer,
   primaryKey,
+  real,
   sqliteTable,
   text,
   uniqueIndex,
@@ -87,6 +88,9 @@ export const titles = sqliteTable(
     /** Age rating (classificação indicativa), e.g. "16". */
     contentRating: text("content_rating"),
     status: text("status"),
+    /** TMDB audience score (0–10) and how many votes it rests on; they set the Arena stats. */
+    voteAverage: real("vote_average"),
+    voteCount: integer("vote_count"),
     /** Seasons of a series, refreshed from TMDB so new seasons are noticed. */
     seasonList: text("season_list", { mode: "json" }).$type<SeasonInfo[] | null>(),
     /** When seasonList was last fetched from TMDB. */

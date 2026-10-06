@@ -29,6 +29,13 @@
       "when": 1791123256116,
       "tag": "0003_certified_at",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791319512774,
+      "tag": "0004_arena_votes",
+      "breakpoints": true
     }
   ]
 }
