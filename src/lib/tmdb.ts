@@ -1,6 +1,6 @@
 import "server-only";
 import type { ContentType, SeasonInfo } from "@/db/schema";
-import { MOCK_CATALOG, findMock, mockImagePath, searchMock, type MockTitle } from "./mock-catalog";
+import { MOCK_CATALOG, findMock, mockImagePath, mockVotes, searchMock, type MockTitle } from "./mock-catalog";
 import { MOCK_COLLECTIONS, MOCK_CREDITS } from "./mock-extras";
 
 export type SearchType = ContentType | "all";
@@ -33,6 +33,9 @@ export type TitleDetail = TitleSummary & {
   tagline: string | null;
   /** Series only. */
   seasonList: SeasonInfo[] | null;
+  /** TMDB audience score (0–10) and its number of votes. */
+  voteAverage: number | null;
+  voteCount: number | null;
 };
 
 const API = "https://api.themoviedb.org/3";
@@ -103,6 +106,7 @@ const year = (d?: string | null) => (d && d.length >= 4 ? Number(d.slice(0, 4)) 
 
 function fromMock(m: MockTitle): TitleDetail {
   const img = mockImagePath(m);
+  const votes = mockVotes(m);
   return {
     type: m.type,
     id: m.id,
@@ -122,6 +126,8 @@ function fromMock(m: MockTitle): TitleDetail {
     status: m.status,
     tagline: null,
     seasonList: m.type === "series" ? mockSeasons(m) : null,
+    voteAverage: votes?.[0] ?? null,
+    voteCount: votes?.[1] ?? null,
   };
 }
 
@@ -223,6 +229,8 @@ type TmdbTvDetail = {
   last_episode_to_air?: TmdbEpisodeRef | null;
   next_episode_to_air?: TmdbEpisodeRef | null;
   content_ratings?: { results: { iso_3166_1: string; rating: string }[] };
+  vote_average?: number;
+  vote_count?: number;
 };
 
 type TmdbEpisodeRef = { season_number: number; episode_number: number; air_date: string | null };
@@ -274,6 +282,8 @@ type TmdbMovieDetail = {
   production_companies: { name: string }[];
   status: string;
   release_dates?: { results: { iso_3166_1: string; release_dates: { certification: string }[] }[] };
+  vote_average?: number;
+  vote_count?: number;
 };
 
 function pickRating(byCountry: { country: string; rating: string }[]) {
@@ -317,6 +327,8 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
         ),
         status: d.status,
         seasonList: null,
+        voteAverage: d.vote_average ?? null,
+        voteCount: d.vote_count ?? null,
       };
     }
     const d = await tmdb<TmdbTvDetail>(`/tv/${id}`, { append_to_response: "content_ratings" });
@@ -341,6 +353,8 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
       ),
       status: d.status,
       seasonList: parseSeasons(d),
+      voteAverage: d.vote_average ?? null,
+      voteCount: d.vote_count ?? null,
     };
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("TMDB 404")) return null;
