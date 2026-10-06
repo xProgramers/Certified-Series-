@@ -7,13 +7,13 @@ import { posterUrl } from "@/lib/images";
 import { usePalette } from "./ContentCard";
 
 /**
- * The back of a card, seen only in the Arena: the same palette and poster,
- * dimmed, with the game stats. The front stays exactly as it is.
+ * The back of a card, seen only in the Arena: the poster on top, fading into
+ * the card's palette, with the game stats. The front stays exactly as it is.
  */
 export function ArenaCardBack({ card }: { card: CardData }) {
   const palette = usePalette(card);
   const stats = card.arena ?? null;
-  const src = posterUrl(card.posterPath, "w342");
+  const src = posterUrl(card.posterPath, "w500");
   const years = formatYears(card.startYear, card.endYear);
   const length =
     card.contentType === "series" && card.seasons
@@ -63,7 +63,7 @@ export function ArenaCardBack({ card }: { card: CardData }) {
             <>
               <div className="ab-sigil">
                 <svg viewBox="0 0 100 100" aria-hidden>
-                  <circle cx="50" cy="50" r="48" fill="rgb(10 10 10 / 0.35)" />
+                  <circle cx="50" cy="50" r="48" fill="rgb(10 10 10 / 0.55)" />
                   <circle cx="50" cy="50" r="47" fill="none" stroke="currentColor" strokeWidth="1" opacity=".9" />
                   <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth=".5" opacity=".4" strokeDasharray="1.5 3" />
                 </svg>
