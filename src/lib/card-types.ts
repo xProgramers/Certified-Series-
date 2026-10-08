@@ -98,6 +98,10 @@ export function titleHref(type: ContentType, id: number) {
   return `/${type === "movie" ? "movies" : "series"}/${id}`;
 }
 
+export function personHref(id: string) {
+  return `/person/${encodeURIComponent(id)}`;
+}
+
 export const TYPE_LABEL: Record<ContentType, { one: string; many: string }> = {
   series: { one: "série", many: "séries" },
   movie: { one: "filme", many: "filmes" },
