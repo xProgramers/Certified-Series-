@@ -3,7 +3,7 @@
  * ("mock:1396"). Both are served from our own origin so the card renderer can
  * read pixels (color extraction) and export to PNG without CORS issues.
  */
-export type ImageSize = "w185" | "w342" | "w500" | "w780" | "w1280";
+export type ImageSize = "w92" | "w185" | "w342" | "w500" | "w780" | "w1280";
 
 export function posterUrl(path: string | null | undefined, size: ImageSize = "w500") {
   return imageUrl(path, size, "poster");
@@ -21,4 +21,9 @@ function imageUrl(path: string | null | undefined, size: ImageSize, kind: "poste
 
 export function profileUrl(path: string | null | undefined) {
   return imageUrl(path, "w185", "poster");
+}
+
+/** Streaming service logo (TMDB), shown at ~18px. */
+export function logoUrl(path: string | null | undefined) {
+  return imageUrl(path, "w92", "poster");
 }

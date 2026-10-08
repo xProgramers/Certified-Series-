@@ -1,7 +1,8 @@
 import "server-only";
 import type { ContentType, SeasonInfo } from "@/db/schema";
 import { MOCK_CATALOG, findMock, mockImagePath, mockVotes, searchMock, type MockTitle } from "./mock-catalog";
-import { MOCK_COLLECTIONS, MOCK_CREDITS } from "./mock-extras";
+import { MOCK_COLLECTIONS, MOCK_CREDITS, MOCK_PROVIDERS } from "./mock-extras";
+import { brand, toProvider, uniqueProviders, type WatchProvider, type WatchProviders } from "./providers";
 
 export type SearchType = ContentType | "all";
 
@@ -752,6 +753,64 @@ function mockPersonDetail(id: string): PersonDetail | null {
     acting: acting.sort(byYear),
     crew: crew.sort(byYear),
   };
+}
+
+const REGION = "BR";
+
+type TmdbProvider = { provider_id: number; provider_name: string; logo_path: string | null; display_priority: number };
+type TmdbProviderRegion = {
+  link?: string;
+  flatrate?: TmdbProvider[];
+  free?: TmdbProvider[];
+  ads?: TmdbProvider[];
+  rent?: TmdbProvider[];
+  buy?: TmdbProvider[];
+};
+
+const providerList = (...groups: (TmdbProvider[] | undefined)[]) =>
+  uniqueProviders(
+    groups
+      .flatMap((g) => g ?? [])
+      .sort((a, b) => a.display_priority - b.display_priority)
+      .map(toProvider),
+  );
+
+function mockProviders(type: ContentType, id: number): WatchProviders {
+  const m = MOCK_PROVIDERS[`${type}:${id}`];
+  const fromKeys = (keys: string[] = []) =>
+    keys.flatMap((k) => {
+      const b = brand(k);
+      return b ? [{ key: b.key, name: b.name, logoPath: null }] : [];
+    });
+  return { stream: fromKeys(m?.stream), store: fromKeys(m?.store), link: null };
+}
+
+/** Where a title can be watched in Brazil: streaming first, then rent or buy. */
+export async function getWatchProviders(type: ContentType, id: number): Promise<WatchProviders> {
+  if (!tmdbConfigured()) return mockProviders(type, id);
+  const d = await tmdb<{ results?: Record<string, TmdbProviderRegion> }>(`/${tmdbKind(type)}/${id}/watch/providers`);
+  const br = d.results?.[REGION];
+  if (!br) return { stream: [], store: [], link: null };
+  const stream = providerList(br.flatrate, br.free, br.ads);
+  const streamKeys = new Set(stream.map((p) => p.key));
+  return {
+    stream,
+    // A service already listed for streaming is not repeated under rent or buy
+    store: providerList(br.rent, br.buy).filter((p) => !streamKeys.has(p.key)),
+    link: br.link ?? null,
+  };
+}
+
+/** Streaming services for a page of search results, keyed "type:id". A failed lookup is just left out. */
+export async function getStreamingFor(items: { type: ContentType; id: number }[]) {
+  const out: Record<string, WatchProvider[]> = {};
+  await Promise.all(
+    items.map(async ({ type, id }) => {
+      const p = await getWatchProviders(type, id).catch(() => null);
+      if (p) out[`${type}:${id}`] = p.stream;
+    }),
+  );
+  return out;
 }
 
 /** Trending titles for the search page's empty state. */
