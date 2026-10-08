@@ -363,11 +363,14 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
 }
 
 export type Person = {
+  /** TMDB person id, or a name slug for the sample catalog. */
   id: string;
   name: string;
   /** Character played (cast) or nothing (crew). */
   role: string | null;
   profilePath: string | null;
+  /** Episodes in the series (cast and crew of series only). */
+  episodes?: number | null;
 };
 
 export type TitleExtras = {
@@ -393,11 +396,29 @@ type TmdbAggregateCredits = {
 };
 type TmdbPage = { results: TmdbResult[] };
 
-const person = (p: TmdbPerson, role: string | null = null): Person => ({
+const person = (p: TmdbPerson, role: string | null = null, episodes: number | null = null): Person => ({
   id: String(p.id),
   name: p.name,
   role: role || null,
   profilePath: p.profile_path,
+  episodes,
+});
+
+/** Sample-catalog people have no TMDB id: their name, slugged, is the id. */
+export function personSlug(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+const mockPerson = (name: string, role: string | null = null): Person => ({
+  id: personSlug(name),
+  name,
+  role,
+  profilePath: null,
 });
 
 /** Cast, director/creators, franchise and similar titles for the title page. */
@@ -481,10 +502,255 @@ function mockExtras(type: ContentType, id: number): TitleExtras {
         .map((x) => fromMock(x.m))
     : [];
   return {
-    makers: (credits?.directors ?? []).map((name) => ({ id: name, name, role: null, profilePath: null })),
-    cast: (credits?.cast ?? []).map(([name, role]) => ({ id: name, name, role, profilePath: null })),
+    makers: (credits?.directors ?? []).map((name) => mockPerson(name)),
+    cast: (credits?.cast ?? []).map(([name, role]) => mockPerson(name, role)),
     franchise,
     similar,
+  };
+}
+
+export type TitleCredits = {
+  /** Directors (movies) or creators (series). */
+  makers: Person[];
+  /** Everyone credited in the cast, in billing order (series: by episodes). */
+  cast: Person[];
+  /** Key crew roles, in a fixed order; empty roles are left out. */
+  crew: { job: string; people: Person[] }[];
+};
+
+const FULL_CAST_LIMIT = 200;
+const CREW_PER_JOB = 12;
+
+/** TMDB crew jobs worth showing, with their Portuguese label (several jobs can share one). */
+const CREW_JOBS: [string, string][] = [
+  ["Director", "Direção"],
+  ["Screenplay", "Roteiro"],
+  ["Writer", "Roteiro"],
+  ["Teleplay", "Roteiro"],
+  ["Story", "Argumento"],
+  ["Novel", "Obra original"],
+  ["Comic Book", "Obra original"],
+  ["Original Music Composer", "Música"],
+  ["Music", "Música"],
+  ["Director of Photography", "Fotografia"],
+  ["Editor", "Montagem"],
+  ["Production Design", "Direção de arte"],
+  ["Casting", "Seleção de elenco"],
+  ["Producer", "Produção"],
+  ["Executive Producer", "Produção executiva"],
+];
+const JOB_LABEL = new Map(CREW_JOBS);
+const JOB_ORDER = [...new Set(CREW_JOBS.map(([, label]) => label))];
+
+/** Portuguese label of a TMDB crew job (the job itself when unknown). */
+export function jobLabel(job: string) {
+  return JOB_LABEL.get(job) ?? job;
+}
+
+function groupCrew(entries: { p: TmdbPerson; job: string; episodes: number | null }[], skip: string[] = []) {
+  const groups = new Map<string, Map<string, Person>>();
+  for (const { p, job, episodes } of entries) {
+    const label = JOB_LABEL.get(job);
+    if (!label || skip.includes(label)) continue;
+    const group = groups.get(label) ?? new Map<string, Person>();
+    groups.set(label, group);
+    const prev = group.get(String(p.id));
+    if (!prev) group.set(String(p.id), person(p, null, episodes));
+    else if (episodes != null) prev.episodes = Math.max(prev.episodes ?? 0, episodes);
+  }
+  return JOB_ORDER.filter((label) => groups.has(label)).map((label) => ({
+    job: label,
+    people: [...groups.get(label)!.values()]
+      .sort((a, b) => (b.episodes ?? 0) - (a.episodes ?? 0))
+      .slice(0, CREW_PER_JOB),
+  }));
+}
+
+/** The full cast and key crew, for the title's "elenco completo" page. */
+export async function getTitleCredits(type: ContentType, id: number): Promise<TitleCredits> {
+  if (!tmdbConfigured()) {
+    const credits = type === "movie" ? MOCK_CREDITS[id] : undefined;
+    return {
+      makers: (credits?.directors ?? []).map((name) => mockPerson(name)),
+      cast: (credits?.cast ?? []).map(([name, role]) => mockPerson(name, role)),
+      crew: [],
+    };
+  }
+
+  if (type === "movie") {
+    const d = await tmdb<TmdbCredits>(`/movie/${id}/credits`);
+    return {
+      makers: d.crew.filter((c) => c.job === "Director").map((c) => person(c)),
+      cast: d.cast.slice(0, FULL_CAST_LIMIT).map((c) => person(c, c.character)),
+      // Directors are already the page's makers
+      crew: groupCrew(d.crew.map((c) => ({ p: c, job: c.job, episodes: null })), ["Direção"]),
+    };
+  }
+
+  const d = await tmdb<{
+    created_by: TmdbPerson[];
+    aggregate_credits?: {
+      cast: (TmdbPerson & { roles?: { character: string }[]; total_episode_count?: number })[];
+      crew: (TmdbPerson & { jobs?: { job: string; episode_count: number }[] })[];
+    };
+  }>(`/tv/${id}`, { append_to_response: "aggregate_credits" });
+  const agg = d.aggregate_credits ?? { cast: [], crew: [] };
+  return {
+    makers: d.created_by.map((c) => person(c)),
+    cast: agg.cast
+      .slice(0, FULL_CAST_LIMIT)
+      .map((c) => person(c, c.roles?.[0]?.character, c.total_episode_count ?? null)),
+    crew: groupCrew(agg.crew.flatMap((c) => (c.jobs ?? []).map((j) => ({ p: c, job: j.job, episodes: j.episode_count })))),
+  };
+}
+
+export type PersonCredit = TitleSummary & {
+  /** Characters played, or crew jobs (in Portuguese), joined. */
+  role: string | null;
+  /** Episodes in the series. */
+  episodes: number | null;
+  /** TMDB vote count, used to rank what the person is known for. */
+  votes: number;
+};
+
+export type PersonDetail = {
+  id: string;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  deathday: string | null;
+  placeOfBirth: string | null;
+  profilePath: string | null;
+  /** What they are mainly known for: "Atuação", "Direção", "Roteiro"… */
+  knownFor: string | null;
+  acting: PersonCredit[];
+  crew: PersonCredit[];
+};
+
+const DEPARTMENTS: Record<string, string> = {
+  Acting: "Atuação",
+  Directing: "Direção",
+  Writing: "Roteiro",
+  Production: "Produção",
+  Sound: "Música",
+  Camera: "Fotografia",
+  Editing: "Montagem",
+  Creator: "Criação",
+};
+
+// Talk shows, news and reality: guest spots, not part of a filmography
+const SKIP_GENRES = new Set([10767, 10763, 10764]);
+const SELF = /^(self|himself|herself|themselves|ele mesmo|ela mesma|si mesmo|si mesma)\b/i;
+
+type TmdbPersonCredit = TmdbResult & {
+  media_type: "tv" | "movie";
+  vote_count?: number;
+  character?: string;
+  episode_count?: number;
+  job?: string;
+};
+
+/** Merges a person's credits on the same title (several characters or jobs), newest first. */
+function mergeCredits(list: { r: TmdbPersonCredit; role: string | null }[]): PersonCredit[] {
+  const byTitle = new Map<string, PersonCredit>();
+  for (const { r, role } of list) {
+    const type: ContentType = r.media_type === "movie" ? "movie" : "series";
+    const key = `${type}:${r.id}`;
+    const prev = byTitle.get(key);
+    if (prev) {
+      if (role && !prev.role?.split(" / ").includes(role)) prev.role = prev.role ? `${prev.role} / ${role}` : role;
+      if (r.episode_count) prev.episodes = Math.max(prev.episodes ?? 0, r.episode_count);
+      continue;
+    }
+    byTitle.set(key, {
+      ...fromResult({ ...r, genre_ids: r.genre_ids ?? [] }, type),
+      role,
+      episodes: r.episode_count ?? null,
+      votes: r.vote_count ?? 0,
+    });
+  }
+  // Undated (announced) titles go last
+  return [...byTitle.values()].sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || b.votes - a.votes);
+}
+
+/** A person's profile and filmography (cast and crew, series and movies). */
+export async function getPerson(id: string): Promise<PersonDetail | null> {
+  if (!tmdbConfigured()) return mockPersonDetail(id);
+  if (!/^\d{1,10}$/.test(id)) return null;
+  try {
+    const d = await tmdb<{
+      id: number;
+      name: string;
+      biography: string;
+      birthday: string | null;
+      deathday: string | null;
+      place_of_birth: string | null;
+      profile_path: string | null;
+      known_for_department: string | null;
+      combined_credits?: { cast: TmdbPersonCredit[]; crew: TmdbPersonCredit[] };
+    }>(`/person/${id}`, { append_to_response: "combined_credits" });
+    // Most people have no Portuguese biography: fall back to English
+    const biography =
+      d.biography ||
+      (await tmdb<{ biography: string }>(`/person/${id}`, { language: "en-US" }).then((e) => e.biography).catch(() => ""));
+    const keep = (r: TmdbPersonCredit) =>
+      (r.media_type === "tv" || r.media_type === "movie") &&
+      !(r.genre_ids ?? []).some((g) => SKIP_GENRES.has(g)) &&
+      (r.poster_path || (r.vote_count ?? 0) > 0);
+    const credits = d.combined_credits ?? { cast: [], crew: [] };
+    return {
+      id: String(d.id),
+      name: d.name,
+      biography,
+      birthday: d.birthday,
+      deathday: d.deathday,
+      placeOfBirth: d.place_of_birth,
+      profilePath: d.profile_path,
+      knownFor: d.known_for_department ? (DEPARTMENTS[d.known_for_department] ?? d.known_for_department) : null,
+      acting: mergeCredits(
+        credits.cast.filter((r) => keep(r) && !SELF.test(r.character ?? "")).map((r) => ({ r, role: r.character || null })),
+      ),
+      crew: mergeCredits(credits.crew.filter(keep).map((r) => ({ r, role: r.job ? jobLabel(r.job) : null }))),
+    };
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("TMDB 404")) return null;
+    throw e;
+  }
+}
+
+/** Builds a sample-catalog person from every movie credit carrying their name. */
+function mockPersonDetail(id: string): PersonDetail | null {
+  let name: string | null = null;
+  const acting: PersonCredit[] = [];
+  const crew: PersonCredit[] = [];
+  for (const [movieId, credits] of Object.entries(MOCK_CREDITS)) {
+    const m = findMock("movie", Number(movieId));
+    if (!m) continue;
+    const credit = (role: string): PersonCredit => ({ ...fromMock(m), role, episodes: null, votes: mockVotes(m)?.[1] ?? 0 });
+    for (const d of credits.directors) {
+      if (personSlug(d) !== id) continue;
+      name = d;
+      crew.push(credit("Direção"));
+    }
+    for (const [actor, role] of credits.cast) {
+      if (personSlug(actor) !== id) continue;
+      name = actor;
+      acting.push(credit(role));
+    }
+  }
+  if (!name) return null;
+  const byYear = (a: PersonCredit, b: PersonCredit) => (b.year ?? 0) - (a.year ?? 0);
+  return {
+    id,
+    name,
+    biography: "",
+    birthday: null,
+    deathday: null,
+    placeOfBirth: null,
+    profilePath: null,
+    knownFor: acting.length >= crew.length ? "Atuação" : "Direção",
+    acting: acting.sort(byYear),
+    crew: crew.sort(byYear),
   };
 }
 
