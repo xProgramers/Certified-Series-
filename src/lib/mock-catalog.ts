@@ -127,8 +127,8 @@ export function findMockByImageKey(key: string) {
 
 /**
  * Approximate TMDB audience scores of the sample titles, [score, votes],
- * keyed like mockImagePath ("1396" series, "m603" movie). They feed the
- * Arena stats while TMDB is not configured.
+ * keyed like mockImagePath ("1396" series, "m603" movie). They stand in
+ * for TMDB vote data while TMDB is not configured.
  */
 const MOCK_VOTES: Record<string, [number, number]> = {
   "1396": [8.9, 15000], "1399": [8.5, 24000], "95396": [8.4, 2500], "87108": [8.7, 6000],

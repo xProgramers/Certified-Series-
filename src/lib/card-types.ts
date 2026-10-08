@@ -1,5 +1,4 @@
 import type { CardPalette, CertificationStatus, ContentType, EntryStatus, SeasonInfo } from "@/db/schema";
-import type { ArenaStats } from "./arena";
 
 export type { CertificationStatus, ContentType, EntryStatus, SeasonInfo };
 
@@ -41,8 +40,6 @@ export type CardData = {
   watchedSeasons?: number[] | null;
   /** Rated series whose card went back to black & white because a new season came out. */
   newSeason?: boolean;
-  /** Arena game stats; null until the title has TMDB vote data. */
-  arena?: ArenaStats | null;
 };
 
 export const HOUSE_PALETTE: CardPalette = {

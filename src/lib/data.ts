@@ -2,7 +2,6 @@ import "server-only";
 import { and, desc, eq, isNull, lt, max, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { CardPalette, CertificationStatus, ContentType, EntryStatus, SeasonInfo } from "@/db/schema";
-import { arenaStats } from "./arena";
 import { seasonProgress, type CardData } from "./card-types";
 import { getTitle, type TitleDetail } from "./tmdb";
 
@@ -59,9 +58,6 @@ const cardSelect = {
   endYear: titles.endYear,
   seasons: titles.numberOfSeasons,
   runtime: titles.runtime,
-  episodes: titles.numberOfEpisodes,
-  voteAverage: titles.voteAverage,
-  voteCount: titles.voteCount,
   genres: titles.genres,
   posterPath: titles.posterPath,
   backdropPath: titles.backdropPath,
@@ -92,9 +88,6 @@ type Row = {
   endYear: number | null;
   seasons: number | null;
   runtime: number | null;
-  episodes: number | null;
-  voteAverage: number | null;
-  voteCount: number | null;
   genres: string[];
   posterPath: string | null;
   backdropPath: string | null;
@@ -139,14 +132,6 @@ function toCard(r: Row): CardData {
     seasonList: series ? r.seasonList : null,
     watchedSeasons: seasons?.watched ?? null,
     newSeason: seasons?.newSeason ?? false,
-    arena: arenaStats({
-      type: r.contentType,
-      voteAverage: r.voteAverage,
-      voteCount: r.voteCount,
-      episodes: series ? r.episodes : null,
-      runtime: series ? null : r.runtime,
-      genres: r.genres ?? [],
-    }),
   };
 }
 
@@ -337,27 +322,4 @@ export async function releasedSeasons(id: number) {
     columns: { seasonList: true },
   });
   return row?.seasonList ? row.seasonList.filter((s) => s.state === "released").map((s) => s.number) : null;
-}
-
-const VOTES_REFRESH_LIMIT = 20;
-
-/**
- * Titles cached before the Arena have no vote data, so their cards have no
- * stats. Fills them from TMDB for a user's completed works, a few per visit;
- * a TMDB failure never breaks the page.
- */
-export async function backfillVotes(userId: string) {
-  const missing = await db
-    .selectDistinct({ type: titles.type, id: titles.id })
-    .from(watchEntries)
-    .innerJoin(titles, and(eq(titles.type, watchEntries.contentType), eq(titles.id, watchEntries.contentId)))
-    .where(and(eq(watchEntries.userId, userId), eq(watchEntries.status, "completed"), isNull(titles.voteCount)))
-    .limit(VOTES_REFRESH_LIMIT);
-
-  await Promise.allSettled(
-    missing.map(async ({ type, id }) => {
-      const detail = await getTitle(type, id);
-      if (detail) await upsertTitle(detail);
-    }),
-  );
 }
