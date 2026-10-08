@@ -2,8 +2,9 @@ import { logoUrl } from "@/lib/images";
 import { brand, providerInitials, type WatchProvider } from "@/lib/providers";
 
 /**
- * Streaming services as small monochrome marks (18px tall). "overlay" sits on
- * a poster's corner on a dark glass chip; "plain" follows the page theme.
+ * Streaming services as their official logos: 16px on posters, 18px on the page. "overlay" sits on
+ * a poster's corner; "plain" follows the page theme. Without a logo (sample
+ * catalog) a small letter mark stands in.
  */
 export function ProviderIcons({
   providers,
@@ -46,8 +47,7 @@ const chip = (tone: "overlay" | "plain") =>
   }`;
 
 export function ProviderMark({ provider, tone = "overlay" }: { provider: WatchProvider; tone?: "overlay" | "plain" }) {
-  const b = brand(provider.key);
-  if (!b && provider.logoPath) {
+  if (provider.logoPath) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -55,10 +55,16 @@ export function ProviderMark({ provider, tone = "overlay" }: { provider: WatchPr
         alt={provider.name}
         title={provider.name}
         loading="lazy"
-        className="block size-[18px] rounded-[5px] opacity-80 grayscale"
+        decoding="async"
+        className={`block object-cover ${
+          tone === "overlay"
+            ? "size-4 rounded-[4px] shadow-[0_1px_3px_rgb(0_0_0/0.5)] ring-1 ring-white/15"
+            : "size-[18px] rounded-[5px] ring-1 ring-line"
+        }`}
       />
     );
   }
+  const b = brand(provider.key);
   const mark = b?.mark ?? providerInitials(provider.name);
   return (
     <span

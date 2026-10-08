@@ -1,13 +1,15 @@
 /**
- * Streaming services, drawn as small monochrome marks next to titles. TMDB
- * (via JustWatch) lists each service under several names ("Netflix",
- * "Netflix Standard with Ads"…): they collapse into one brand here.
+ * Streaming services, shown as their official logo (from TMDB) next to
+ * titles. TMDB (via JustWatch) lists each service under several names
+ * ("Netflix", "Netflix Standard with Ads"…): they collapse into one brand
+ * here. The letter marks are only a fallback when there is no logo (the
+ * sample catalog).
  */
 export type WatchProvider = {
-  /** Brand key ("netflix", "max"…) or "tmdb:<id>" for a service without a mark. */
+  /** Brand key ("netflix", "max"…) or "tmdb:<id>" for a service not in BRANDS. */
   key: string;
   name: string;
-  /** TMDB logo path, used only for services without a mark. */
+  /** Official logo (TMDB path); null in the sample catalog. */
   logoPath: string | null;
 };
 
@@ -49,7 +51,9 @@ export function brand(key: string) {
 /** The brand a TMDB provider belongs to, or a provider of its own. */
 export function toProvider(p: { provider_id: number; provider_name: string; logo_path: string | null }): WatchProvider {
   const b = BRANDS.find((x) => x.match.test(p.provider_name.trim()));
-  return b ? { key: b.key, name: b.name, logoPath: null } : { key: `tmdb:${p.provider_id}`, name: p.provider_name, logoPath: p.logo_path };
+  return b
+    ? { key: b.key, name: b.name, logoPath: p.logo_path }
+    : { key: `tmdb:${p.provider_id}`, name: p.provider_name, logoPath: p.logo_path };
 }
 
 /** Drops repeats of the same brand, keeping the first (TMDB's display order). */
