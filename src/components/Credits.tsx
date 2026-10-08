@@ -3,6 +3,7 @@ import type { EntryStatus } from "@/db/schema";
 import { personHref, titleHref } from "@/lib/card-types";
 import { posterUrl, profileUrl } from "@/lib/images";
 import type { Person, TitleSummary } from "@/lib/tmdb";
+import { TitleStreaming } from "./TitleStreaming";
 
 /**
  * Building blocks shared by the title page's lower half, the full cast page
@@ -132,6 +133,7 @@ export function PosterTile({
         ) : (
           <div className="grid h-full place-items-center p-4 text-center font-serif text-lg text-dim">{t.name}</div>
         )}
+        {!current && <TitleStreaming type={t.type} id={t.id} className="absolute bottom-1.5 right-1.5" />}
       </div>
       <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-dim">
         {current ? <span className="text-gold">Você está aqui</span> : meta}
