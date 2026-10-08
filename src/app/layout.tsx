@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cinzel, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { SiteHeader } from "@/components/SiteHeader";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
@@ -12,8 +12,6 @@ const instrument = Instrument_Serif({
   weight: "400",
   style: ["normal", "italic"],
 });
-// Movie-poster capitals, used only for the Arena's game UI
-const cinzel = Cinzel({ variable: "--font-cinzel", subsets: ["latin"], weight: ["700", "900"] });
 
 export const metadata: Metadata = {
   title: { default: "Certified Series — seu repertório, em cartaz", template: "%s · Certified Series" },
@@ -31,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // data-theme is set by the inline script before paint, hence suppressHydrationWarning
     <html
       lang="pt-BR"
-      className={`${geist.variable} ${geistMono.variable} ${instrument.variable} ${cinzel.variable} h-full antialiased`}
+      className={`${geist.variable} ${geistMono.variable} ${instrument.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

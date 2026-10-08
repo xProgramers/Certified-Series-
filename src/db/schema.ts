@@ -1,5 +1,4 @@
 import { sql } from "drizzle-orm";
-import type { MatchCard, MatchOutcome, RoundResult } from "../lib/arena-game";
 import {
   foreignKey,
   index,
@@ -89,7 +88,7 @@ export const titles = sqliteTable(
     /** Age rating (classificação indicativa), e.g. "16". */
     contentRating: text("content_rating"),
     status: text("status"),
-    /** TMDB audience score (0–10) and how many votes it rests on; they set the Arena stats. */
+    /** TMDB audience score (0–10) and how many votes it rests on. */
     voteAverage: real("vote_average"),
     voteCount: integer("vote_count"),
     /** Seasons of a series, refreshed from TMDB so new seasons are noticed. */
@@ -178,29 +177,6 @@ export const favorites = sqliteTable(
     primaryKey({ columns: [t.userId, t.contentType, t.contentId] }),
     foreignKey({ columns: [t.contentType, t.contentId], foreignColumns: [titles.type, titles.id] }),
   ],
-);
-
-/**
- * An Arena match against the computer. Both decks are frozen with the stats
- * they had at the start; rounds are resolved on the server and appended here.
- */
-export const arenaMatches = sqliteTable(
-  "arena_matches",
-  {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    /** Challenge key, e.g. "suspense". */
-    challenge: text("challenge").notNull(),
-    playerDeck: text("player_deck", { mode: "json" }).$type<MatchCard[]>().notNull(),
-    opponentDeck: text("opponent_deck", { mode: "json" }).$type<MatchCard[]>().notNull(),
-    rounds: text("rounds", { mode: "json" }).$type<RoundResult[]>().notNull().default([]),
-    /** playing until the fifth round, then won / lost / draw. */
-    status: text("status").$type<"playing" | MatchOutcome>().notNull().default("playing"),
-    ...timestamps,
-  },
-  (t) => [index("arena_matches_user_idx").on(t.userId, t.createdAt)],
 );
 
 export type User = typeof users.$inferSelect;
