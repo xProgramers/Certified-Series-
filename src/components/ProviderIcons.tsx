@@ -2,7 +2,7 @@ import { logoUrl } from "@/lib/images";
 import { brand, providerInitials, type WatchProvider } from "@/lib/providers";
 
 /**
- * Streaming services as their official logos, 18px square. "overlay" sits on
+ * Streaming services as their official logos: 16px on posters, 18px on the page. "overlay" sits on
  * a poster's corner; "plain" follows the page theme. Without a logo (sample
  * catalog) a small letter mark stands in.
  */
@@ -56,8 +56,10 @@ export function ProviderMark({ provider, tone = "overlay" }: { provider: WatchPr
         title={provider.name}
         loading="lazy"
         decoding="async"
-        className={`block size-[18px] rounded-[5px] object-cover ${
-          tone === "overlay" ? "shadow-[0_1px_3px_rgb(0_0_0/0.5)] ring-1 ring-white/15" : "ring-1 ring-line"
+        className={`block object-cover ${
+          tone === "overlay"
+            ? "size-4 rounded-[4px] shadow-[0_1px_3px_rgb(0_0_0/0.5)] ring-1 ring-white/15"
+            : "size-[18px] rounded-[5px] ring-1 ring-line"
         }`}
       />
     );
