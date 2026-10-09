@@ -29,6 +29,7 @@ export async function deleteAccount(_: DeleteAccountState, form: FormData): Prom
   // only honours when foreign_keys is switched on for the connection
   await db.batch([
     db.delete(schema.favorites).where(eq(schema.favorites.userId, user.id)),
+    db.delete(schema.userAchievements).where(eq(schema.userAchievements.userId, user.id)),
     db.delete(schema.watchEntries).where(eq(schema.watchEntries.userId, user.id)),
     db.delete(schema.users).where(eq(schema.users.id, user.id)),
   ]);

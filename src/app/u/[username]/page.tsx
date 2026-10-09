@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MedalRow } from "@/components/achievements/AchievementsView";
 import { CollectionView } from "@/components/CollectionView";
+import { byPrestige } from "@/lib/achievements";
+import { getUserAchievements, syncAchievements } from "@/lib/achievements-data";
 import { getCurrentUser } from "@/lib/auth";
 import { computeStats, getCollection, getUserByUsername, refreshSeasons } from "@/lib/data";
 import { mailto } from "@/lib/site";
@@ -25,7 +28,13 @@ export default async function ProfilePage({ params, searchParams }: Props) {
   const isOwner = viewer?.id === user.id;
   // New seasons turn finished series back to black & white before the cards are read
   await refreshSeasons(user.id).catch(() => {});
-  const cards = await getCollection(user.id, { includePrivate: isOwner });
+  // Seals follow the cards (and fill in for collections from before achievements)
+  await syncAchievements(user.id).catch((e) => console.error("achievements sync failed", e));
+  const [cards, held] = await Promise.all([
+    getCollection(user.id, { includePrivate: isOwner }),
+    getUserAchievements(user.id),
+  ]);
+  const topSeals = [...new Set([...held].sort(byPrestige).map((h) => h.key))].slice(0, 5);
   const s = computeStats(cards);
 
   // Numbers stay secondary: one quiet line, the collection is the page
@@ -50,6 +59,21 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               <p className="mt-4 font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-dim sm:text-[11px] sm:tracking-[0.18em]">
                 {line.join(" · ")}
               </p>
+            )}
+            {(held.length > 0 || isOwner) && (
+              <Link
+                href={`/u/${user.username}/conquistas`}
+                className="group mt-5 inline-flex items-center gap-3 text-sm text-mute transition-colors hover:text-paper"
+              >
+                {topSeals.length > 0 && <MedalRow keys={topSeals} />}
+                <span>
+                  Conquistas
+                  <span className="ml-2 font-mono text-[11px] text-dim">{held.length}</span>
+                </span>
+                <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
             )}
           </div>
           {isOwner && cards.length > 0 && (

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { SiteFooter } from "@/components/SiteFooter";
+import { CompletionRevealHost } from "@/components/CompletionReveal";
 import { SiteHeader } from "@/components/SiteHeader";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        <CompletionRevealHost />
       </body>
     </html>
   );

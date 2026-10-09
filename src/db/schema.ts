@@ -4,6 +4,7 @@ import {
   index,
   integer,
   primaryKey,
+  real,
   sqliteTable,
   text,
   uniqueIndex,
@@ -87,10 +88,20 @@ export const titles = sqliteTable(
     /** Age rating (classificação indicativa), e.g. "16". */
     contentRating: text("content_rating"),
     status: text("status"),
+    /** TMDB audience score (0–10) and how many votes it rests on. */
+    voteAverage: real("vote_average"),
+    voteCount: integer("vote_count"),
     /** Seasons of a series, refreshed from TMDB so new seasons are noticed. */
     seasonList: text("season_list", { mode: "json" }).$type<SeasonInfo[] | null>(),
     /** When seasonList was last fetched from TMDB. */
     seasonsCheckedAt: integer("seasons_checked_at", { mode: "timestamp_ms" }),
+    /** Movies only: the TMDB collection (franchise) the film belongs to. */
+    collectionId: integer("collection_id"),
+    /**
+     * Directors (movies) or creators (series), by name. Null until fetched:
+     * titles cached before achievements existed are filled on the next sync.
+     */
+    makers: text("makers", { mode: "json" }).$type<string[] | null>(),
     ...timestamps,
   },
   (t) => [primaryKey({ columns: [t.type, t.id] })],
@@ -172,6 +183,47 @@ export const favorites = sqliteTable(
   (t) => [
     primaryKey({ columns: [t.userId, t.contentType, t.contentId] }),
     foreignKey({ columns: [t.contentType, t.contentId], foreignColumns: [titles.type, titles.id] }),
+  ],
+);
+
+/** One part of a TMDB collection; unreleased films never count toward finishing it. */
+export type FranchisePart = { id: number; year: number | null; released: boolean };
+
+/** TMDB collections (movie franchises) the achievements check "Saga completa" against. */
+export const franchises = sqliteTable("franchises", {
+  id: integer("id").primaryKey(), // TMDB collection id
+  name: text("name").notNull(),
+  parts: text("parts", { mode: "json" }).$type<FranchisePart[]>().notNull().default([]),
+  checkedAt: integer("checked_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+/**
+ * Achievements a user holds. The catalogue lives in code (src/lib/achievements.ts);
+ * a row is one earned achievement, re-derived from the collection on every sync.
+ *   scope  → which instance of a repeatable one ("" when it is unique):
+ *            the franchise id of "saga", the director of "autor"
+ *   entry  → the card that earned it; its seal shows on that card
+ */
+export const userAchievements = sqliteTable(
+  "user_achievements",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    scope: text("scope").notNull().default(""),
+    /** Display name of the scope: "Matrix", "Christopher Nolan". */
+    label: text("label"),
+    entryId: text("entry_id")
+      .notNull()
+      .references(() => watchEntries.id, { onDelete: "cascade" }),
+    earnedAt: integer("earned_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.key, t.scope] }),
+    index("user_achievements_entry_idx").on(t.entryId),
+    index("user_achievements_key_idx").on(t.key),
   ],
 );
 

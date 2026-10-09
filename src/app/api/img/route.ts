@@ -3,7 +3,7 @@
  * downloads originals, and makes images CORS-safe for canvas color
  * extraction and PNG export.
  */
-const SIZES = new Set(["w185", "w342", "w500", "w780", "w1280"]);
+const SIZES = new Set(["w92", "w185", "w342", "w500", "w780", "w1280"]);
 const PATH_RE = /^\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/;
 
 export async function GET(req: Request) {

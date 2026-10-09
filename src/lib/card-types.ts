@@ -1,3 +1,4 @@
+import type { CardBadge } from "./achievements";
 import type { CardPalette, CertificationStatus, ContentType, EntryStatus, SeasonInfo } from "@/db/schema";
 
 export type { CertificationStatus, ContentType, EntryStatus, SeasonInfo };
@@ -40,6 +41,8 @@ export type CardData = {
   watchedSeasons?: number[] | null;
   /** Rated series whose card went back to black & white because a new season came out. */
   newSeason?: boolean;
+  /** Achievement seals this card earned (at most two, most prestigious first). */
+  badges?: CardBadge[];
 };
 
 export const HOUSE_PALETTE: CardPalette = {
@@ -93,6 +96,10 @@ export function cardDate(c: Pick<CardData, "completedAt" | "addedAt">) {
 /** Path of the title page for a work. */
 export function titleHref(type: ContentType, id: number) {
   return `/${type === "movie" ? "movies" : "series"}/${id}`;
+}
+
+export function personHref(id: string) {
+  return `/person/${encodeURIComponent(id)}`;
 }
 
 export const TYPE_LABEL: Record<ContentType, { one: string; many: string }> = {

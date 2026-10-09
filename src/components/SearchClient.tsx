@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { titleHref, TYPE_LABEL } from "@/lib/card-types";
 import { posterUrl } from "@/lib/images";
+import type { WatchProvider } from "@/lib/providers";
 import type { SearchType, TitleSummary } from "@/lib/tmdb";
 import { AddButton, type Owned } from "./AddButton";
+import { ProviderIcons } from "./ProviderIcons";
 
 type Fetched =
   | { key: string; status: "done"; results: TitleSummary[] }
@@ -44,6 +46,7 @@ export function SearchClient({
   const [fetched, setFetched] = useState<Fetched | null>({ key: initialKey, status: "done", results: popular });
   const state: State = fetched && fetched.key === key ? fetched : { status: "loading" };
   const inputRef = useRef<HTMLInputElement>(null);
+  const providers = useStreaming(state.status === "done" ? state.results : null);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -144,6 +147,7 @@ export function SearchClient({
                 owned={owned}
                 signedIn={signedIn}
                 showType={type === "all"}
+                providers={providers}
                 onAdded={(k, o) => setOwned((m) => ({ ...m, [k]: o }))}
               />
             </>
@@ -167,12 +171,14 @@ function ResultGrid({
   owned,
   signedIn,
   showType,
+  providers,
   onAdded,
 }: {
   items: TitleSummary[];
   owned: Record<string, NonNullable<Owned>>;
   signedIn: boolean;
   showType: boolean;
+  providers: Record<string, WatchProvider[]>;
   onAdded: (key: string, o: NonNullable<Owned>) => void;
 }) {
   return (
@@ -197,6 +203,9 @@ function ResultGrid({
                 ) : (
                   <div className="grid h-full place-items-center p-4 text-center font-serif text-xl text-dim">{s.name}</div>
                 )}
+                {providers[k] && (
+                  <ProviderIcons providers={providers[k]} className="fade-in absolute bottom-1.5 right-1.5" />
+                )}
               </div>
               <h3 className="mt-3 font-serif text-lg leading-tight transition-colors group-hover:text-hi sm:text-xl">{s.name}</h3>
               <p className="mt-1 truncate font-mono text-[11px] tracking-wider text-dim">
@@ -217,6 +226,32 @@ function ResultGrid({
       })}
     </ul>
   );
+}
+
+/**
+ * Streaming services for the titles on screen, fetched after the results so
+ * they never hold the search up. Remembered across searches.
+ */
+function useStreaming(items: TitleSummary[] | null) {
+  const [known, setKnown] = useState<Record<string, WatchProvider[]>>({});
+  const wanted = (items ?? [])
+    .map((s) => `${s.type}:${s.id}`)
+    .filter((k) => !(k in known))
+    .join(",");
+
+  useEffect(() => {
+    if (!wanted) return;
+    const ctrl = new AbortController();
+    fetch(`/api/tmdb/providers?items=${encodeURIComponent(wanted)}`, { signal: ctrl.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { providers: Record<string, WatchProvider[]> } | null) => {
+        if (data) setKnown((m) => ({ ...m, ...data.providers }));
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [wanted]);
+
+  return known;
 }
 
 function SkeletonGrid() {

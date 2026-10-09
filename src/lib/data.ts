@@ -1,11 +1,12 @@
 import "server-only";
-import { and, desc, eq, isNull, lt, max, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, max, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { CardPalette, CertificationStatus, ContentType, EntryStatus, SeasonInfo } from "@/db/schema";
+import { byPrestige, CARD_BADGE_LIMIT, type AchievementKey, type CardBadge } from "./achievements";
 import { seasonProgress, type CardData } from "./card-types";
 import { getTitle, type TitleDetail } from "./tmdb";
 
-const { users, titles, watchEntries, favorites } = schema;
+const { users, titles, watchEntries, favorites, userAchievements } = schema;
 
 /** Insert or refresh the shared title cache from TMDB data. */
 export async function upsertTitle(d: TitleDetail) {
@@ -26,6 +27,10 @@ export async function upsertTitle(d: TitleDetail) {
     networks: d.networks,
     contentRating: d.contentRating,
     status: d.status,
+    voteAverage: d.voteAverage,
+    voteCount: d.voteCount,
+    collectionId: d.collectionId,
+    makers: d.makers,
     ...(d.type === "series" ? { seasonList: d.seasonList, seasonsCheckedAt: new Date() } : {}),
   };
   await db
@@ -133,6 +138,26 @@ function toCard(r: Row): CardData {
   };
 }
 
+/** The achievement seals each card carries, most prestigious first. */
+async function withBadges(cards: CardData[]) {
+  if (!cards.length) return cards;
+  const rows = await db
+    .select({ entryId: userAchievements.entryId, key: userAchievements.key, label: userAchievements.label })
+    .from(userAchievements)
+    .where(inArray(userAchievements.entryId, cards.map((c) => c.entryId)));
+  const byEntry = new Map<string, CardBadge[]>();
+  for (const r of rows) {
+    const list = byEntry.get(r.entryId) ?? [];
+    list.push({ key: r.key as AchievementKey, label: r.label });
+    byEntry.set(r.entryId, list);
+  }
+  return cards.map((c) => {
+    const badges = byEntry.get(c.entryId);
+    // A card back in black & white (new season) keeps its seals hidden until it is finished again
+    return badges && c.status === "completed" ? { ...c, badges: badges.sort(byPrestige).slice(0, CARD_BADGE_LIMIT) } : c;
+  });
+}
+
 function baseQuery() {
   return db
     .select(cardSelect)
@@ -156,7 +181,7 @@ export async function getCollection(userId: string, opts: { includePrivate: bool
   const rows = await baseQuery()
     .where(where)
     .orderBy(desc(watchEntries.collectionNumber));
-  return rows.map(toCard);
+  return withBadges(rows.map(toCard));
 }
 
 /** Latest viewing of a work by a user (rewatch-ready). */
@@ -165,12 +190,12 @@ export async function getLatestEntry(userId: string, type: ContentType, id: numb
     .where(and(eq(watchEntries.userId, userId), eq(watchEntries.contentType, type), eq(watchEntries.contentId, id)))
     .orderBy(desc(watchEntries.viewingNumber))
     .limit(1);
-  return row ? toCard(row) : null;
+  return row ? (await withBadges([toCard(row)]))[0] : null;
 }
 
 export async function getEntry(entryId: string) {
   const [row] = await baseQuery().where(eq(watchEntries.id, entryId)).limit(1);
-  return row ? toCard(row) : null;
+  return row ? (await withBadges([toCard(row)]))[0] : null;
 }
 
 /** What the user already has of each work: "series:1396" → latest status and N°. */
@@ -223,7 +248,7 @@ export async function getShowcase(limit = 9) {
       desc(watchEntries.completedAt),
     )
     .limit(limit);
-  return rows.map(toCard);
+  return withBadges(rows.map(toCard));
 }
 
 export type CollectionStats = {

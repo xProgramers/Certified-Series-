@@ -29,6 +29,27 @@
       "when": 1791123256116,
       "tag": "0003_certified_at",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791319512774,
+      "tag": "0004_arena_votes",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791321398907,
+      "tag": "0005_arena_matches",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791502869337,
+      "tag": "0006_achievements",
+      "breakpoints": true
     }
   ]
 }

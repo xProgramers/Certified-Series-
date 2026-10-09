@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { completeEntry } from "@/app/actions/collection";
 import type { CardPalette } from "@/db/schema";
@@ -9,8 +7,7 @@ import { certificationFor, formatCollectionNumber, TYPE_LABEL, type CardData } f
 import { posterUrl } from "@/lib/images";
 import { extractPalette } from "@/lib/palette";
 import { ContentCard } from "./card/ContentCard";
-import { useCardExport } from "./card/CardExport";
-import { ActionButton } from "./CardLightbox";
+import { showReveal } from "./CompletionReveal";
 import { EntryFields, todayISO, type EntryValues } from "./EntryForm";
 import { CloseButton, Modal } from "./Modal";
 
@@ -87,10 +84,9 @@ export function CompleteButton({
 /**
  * Completion: the black & white card comes alive (colour fades in), then the
  * user gives a rating and writes a reflection. Saving seals the card with
- * CERTIFIED (≥ 5.0) or NOT CERTIFIED (< 5.0).
+ * CERTIFIED (≥ 5.0) or NOT CERTIFIED (< 5.0) and hands it to the reveal.
  */
 export function CompleteFlow({ work, owner, entry, nextNumber, viewingNumber, onClose }: FlowProps & { onClose: () => void }) {
-  const router = useRouter();
   const [values, setValues] = useState<EntryValues>({
     rating: 8,
     reflection: "",
@@ -99,10 +95,8 @@ export function CompleteFlow({ work, owner, entry, nextNumber, viewingNumber, on
   });
   const [palette, setPalette] = useState<CardPalette | null>(entry?.palette ?? null);
   const [alive, setAlive] = useState(false);
-  const [created, setCreated] = useState<CardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const { exportCard, busy, stage } = useCardExport();
 
   useEffect(() => {
     const src = posterUrl(work.posterPath, "w185");
@@ -144,50 +138,13 @@ export function CompleteFlow({ work, owner, entry, nextNumber, viewingNumber, on
         ...values,
       });
       if (!res.ok) return setError(res.error);
-      setCreated(res.data);
+      // The reveal lives in the layout: the page behind it refreshes (and this
+      // dialog may unmount with it) the moment the card is saved
+      showReveal({ card: res.data.card, unlocked: res.data.unlocked, username: owner.username });
+      onClose();
     });
 
-  const close = () => {
-    if (created) router.refresh();
-    onClose();
-  };
-
-  if (created) {
-    const certified = created.certification === "certified";
-    return (
-      <div data-backdrop className="flex min-h-dvh flex-col items-center justify-center gap-10 overflow-y-auto px-4 py-16">
-        <CloseButton onClick={close} className="fixed right-4 top-4 sm:right-6 sm:top-6" />
-        <div className="sc-reveal relative w-full max-w-[min(400px,72vw)]">
-          <ContentCard card={created} posterSize="w780" priority />
-        </div>
-        <div className="relative text-center rise" style={{ animationDelay: "1.2s" }}>
-          <p className="font-mono text-xs tracking-[0.3em] text-gold">
-            N° {formatCollectionNumber(created.collectionNumber)} · {certified ? "Certified" : "Not certified"}
-          </p>
-          <p className="mx-auto mt-3 max-w-md font-serif text-3xl italic sm:text-4xl">
-            {certified ? "Concluído e certificado." : "Concluído. Esta obra não recebeu sua certificação."}
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-2">
-            <Link
-              href={`/u/${owner.username}?new=${created.entryId}`}
-              onClick={onClose}
-              className="rounded-full bg-paper px-5 py-2.5 text-sm text-ink-0 transition-colors hover:bg-hi"
-            >
-              Ver na coleção
-            </Link>
-            <ActionButton onClick={() => exportCard(created, "card").catch(() => setError("Não foi possível gerar a imagem."))} disabled={!!busy}>
-              {busy === "card" ? "Gerando…" : "Salvar PNG"}
-            </ActionButton>
-            <ActionButton onClick={() => exportCard(created, "story").catch(() => setError("Não foi possível gerar a imagem."))} disabled={!!busy}>
-              {busy === "story" ? "Gerando…" : "Stories"}
-            </ActionButton>
-          </div>
-          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
-        </div>
-        {stage}
-      </div>
-    );
-  }
+  const close = onClose;
 
   const kind = TYPE_LABEL[work.contentType].one;
   const certifies = certificationFor(values.rating) === "certified";
@@ -235,3 +192,4 @@ export function CompleteFlow({ work, owner, entry, nextNumber, viewingNumber, on
     </div>
   );
 }
+

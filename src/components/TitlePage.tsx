@@ -13,6 +13,7 @@ import { OwnedCard } from "./OwnedCard";
 import { RewatchButton } from "./RewatchButton";
 import { SeasonsSection } from "./SeasonsSection";
 import { TitleExtras, TitleExtrasSkeleton } from "./TitleExtras";
+import { WhereToWatch } from "./WhereToWatch";
 
 /** Title page shared by /series/[id] and /movies/[id]. */
 export async function TitlePage({ type, id }: { type: ContentType; id: number }) {
@@ -103,6 +104,10 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
             {title.genres.length > 0 && <p className="mt-6 text-sm text-mute">{title.genres.join(" · ")}</p>}
             {title.tagline && <p className="mt-7 font-serif text-2xl italic text-paper/80">{title.tagline}</p>}
             {title.overview && <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-mute">{title.overview}</p>}
+
+            <Suspense fallback={null}>
+              <WhereToWatch type={type} id={id} />
+            </Suspense>
 
             <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
               {!owner ? (
