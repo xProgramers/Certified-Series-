@@ -241,6 +241,170 @@ body {
   }
 }
 
+/*
+ * List view of the collection: a ledger of rows. Each row carries its card's
+ * palette (--accent, --glow) as a glow behind the poster and a rule on hover.
+ */
+.ledger {
+  border-top: 1px solid var(--color-line);
+}
+.ledger > li {
+  border-bottom: 1px solid var(--color-line);
+}
+.ledger-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.9rem 0.25rem;
+  text-align: left;
+  isolation: isolate;
+  transition: background-color 0.4s var(--ease-cinema);
+}
+@media (min-width: 640px) {
+  .ledger-row {
+    grid-template-columns: 4.5rem auto minmax(0, 1fr) auto;
+    gap: 1.5rem;
+    padding: 1.1rem 1rem;
+  }
+}
+/* Accent rule + a wash of the card's colour from the left */
+.ledger-row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.4s var(--ease-cinema);
+}
+.ledger-row::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform 0.4s var(--ease-cinema);
+}
+.ledger-row:hover::before,
+.ledger-row:focus-visible::before,
+.ledger-row:active::before {
+  opacity: 1;
+}
+.ledger-row:hover::after,
+.ledger-row:focus-visible::after {
+  transform: scaleY(1);
+}
+.ledger-row.is-progress::before {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-paper) 6%, transparent), transparent 55%);
+}
+.ledger-row.is-progress::after {
+  background: var(--color-mute);
+}
+.ledger-no {
+  display: none;
+}
+@media (min-width: 640px) {
+  .ledger-no {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--color-mute);
+  }
+}
+.ledger-poster {
+  position: relative;
+  display: block;
+  width: 3.25rem;
+  aspect-ratio: 2 / 3;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--color-ink-3);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 10px 28px -8px color-mix(in srgb, var(--glow) 85%, transparent);
+  transition: transform 0.5s var(--ease-cinema);
+}
+@media (min-width: 640px) {
+  .ledger-poster {
+    width: 3.75rem;
+  }
+}
+.ledger-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* Same rule as the card: black & white until it is finished */
+.is-progress .ledger-poster img {
+  filter: grayscale(1) contrast(1.05);
+}
+.ledger-row:hover .ledger-poster {
+  transform: translateY(-2px) rotate(-1.5deg);
+}
+.ledger-mark {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+@media (min-width: 640px) {
+  .ledger-mark {
+    min-width: 6rem;
+  }
+}
+.ledger-fav {
+  position: absolute;
+  top: -0.9rem;
+  right: 0;
+  font-size: 10px;
+  color: var(--color-gold);
+}
+.ledger-pip {
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-line-strong);
+}
+.ledger-pip.is-on {
+  background: var(--color-gold);
+}
+
+/* Cards / list switch in the collection toolbar */
+.view-switch {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+}
+.view-switch button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  color: var(--color-dim);
+  transition:
+    color 0.3s,
+    background-color 0.3s;
+}
+.view-switch button:hover {
+  color: var(--color-mute);
+}
+.view-switch button[aria-pressed="true"] {
+  color: var(--color-paper);
+  background: color-mix(in srgb, var(--color-paper) 9%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise,
   .fade-in {
