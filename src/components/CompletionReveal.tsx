@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { ACHIEVEMENT_BY_KEY, byPrestige, type Earned } from "@/lib/achievements";
 import { formatCollectionNumber, type CardData } from "@/lib/card-types";
 import { MedalStage } from "./achievements/MedalStage";
 import { ContentCard } from "./card/ContentCard";
-import { useCardExport } from "./card/CardExport";
-import { ActionButton } from "./CardLightbox";
+import { ShareButton } from "./card/ShareButton";
 import { CloseButton, Modal } from "./Modal";
 
 type Reveal = { card: CardData; unlocked: Earned[]; username: string };
@@ -52,8 +51,6 @@ export function CompletionRevealHost() {
 }
 
 function RevealBody({ card, unlocked, username, onClose }: Reveal & { onClose: () => void }) {
-  const [error, setError] = useState<string | null>(null);
-  const { exportCard, busy, stage, native } = useCardExport();
   const certified = card.certification === "certified";
   return (
     <div data-backdrop className="flex min-h-dvh flex-col items-center justify-center gap-10 overflow-y-auto px-4 py-16">
@@ -77,16 +74,9 @@ function RevealBody({ card, unlocked, username, onClose }: Reveal & { onClose: (
           >
             Ver na coleção
           </Link>
-          <ActionButton onClick={() => exportCard(card, "card").catch(() => setError("Não foi possível gerar a imagem."))} disabled={!!busy}>
-            {busy === "card" ? "Gerando…" : native ? "Compartilhar" : "Salvar PNG"}
-          </ActionButton>
-          <ActionButton onClick={() => exportCard(card, "story").catch(() => setError("Não foi possível gerar a imagem."))} disabled={!!busy}>
-            {busy === "story" ? "Gerando…" : "Stories"}
-          </ActionButton>
+          <ShareButton card={card} variant="outline" />
         </div>
-        {error && <p className="mt-4 text-sm text-danger">{error}</p>}
       </div>
-      {stage}
     </div>
   );
 }

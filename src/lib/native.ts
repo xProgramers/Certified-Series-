@@ -15,10 +15,7 @@ type NativePlugins = {
     minimizeApp(): Promise<void>;
   };
   SystemBars?: { setStyle(opts: { style: "DARK" | "LIGHT" }): Promise<void> };
-  Filesystem?: {
-    writeFile(opts: { path: string; data: string; directory: "CACHE" }): Promise<{ uri: string }>;
-  };
-  Share?: { share(opts: { title?: string; text?: string; files?: string[]; dialogTitle?: string }): Promise<unknown> };
+  Share?: { share(opts: { title?: string; text?: string; url?: string; dialogTitle?: string }): Promise<unknown> };
 };
 
 type CapacitorGlobal = { isNativePlatform?: () => boolean; Plugins?: NativePlugins };
@@ -37,19 +34,14 @@ export function useIsNativeApp() {
 }
 
 /**
- * Opens the system share sheet with a PNG (the WebView can't download files or
- * use the Web Share API). Resolves false when sharing isn't available here.
+ * Opens the system share sheet with a link (the WebView has no Web Share API).
+ * Resolves false when sharing isn't available here.
  */
-export async function shareImage(dataUrl: string, filename: string, title: string): Promise<boolean> {
+export async function shareLink(url: string, title: string, text: string): Promise<boolean> {
   const p = nativePlugins();
-  if (!p?.Filesystem || !p.Share) return false;
-  const { uri } = await p.Filesystem.writeFile({
-    path: filename,
-    data: dataUrl.slice(dataUrl.indexOf(",") + 1),
-    directory: "CACHE",
-  });
+  if (!p?.Share) return false;
   try {
-    await p.Share.share({ title, files: [uri], dialogTitle: "Compartilhar card" });
+    await p.Share.share({ title, text, url, dialogTitle: "Compartilhar card" });
   } catch (e) {
     // Closing the share sheet rejects with "Share canceled": not an error for us
     if (!/cancel/i.test(String((e as Error)?.message ?? e))) throw e;

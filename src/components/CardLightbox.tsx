@@ -14,7 +14,7 @@ import {
   type CardData,
 } from "@/lib/card-types";
 import { ContentCard } from "./card/ContentCard";
-import { useCardExport, type ExportFormat } from "./card/CardExport";
+import { ShareButton } from "./card/ShareButton";
 import { CompleteFlow } from "./CompleteDialog";
 import { EntryFields, todayISO, type EntryValues } from "./EntryForm";
 import { CloseButton, Modal } from "./Modal";
@@ -58,7 +58,6 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const { exportCard, busy, stage, native } = useCardExport();
 
   const preview: CardData = mode === "edit" ? { ...card, ...values, completedAt: values.completedAt + "T12:00:00.000Z" } : card;
   const inProgress = card.status === "in_progress";
@@ -98,16 +97,6 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
       router.refresh();
       onClose();
     });
-  };
-
-  const doExport = async (f: ExportFormat) => {
-    setError(null);
-    try {
-      await exportCard(card, f);
-      if (!native) setNotice(f === "story" ? "Imagem para Stories salva." : "Card salvo como PNG.");
-    } catch {
-      setError("Não foi possível gerar a imagem. Tente novamente.");
-    }
   };
 
   if (mode === "complete") {
@@ -201,16 +190,11 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
                   </div>
                 )
               ) : (
-                <div className="mt-10 space-y-3">
-                  <p className="eyebrow">Compartilhar</p>
-                  <div className="flex flex-wrap gap-2">
-                    <ActionButton primary onClick={() => doExport("card")} disabled={!!busy}>
-                      {busy === "card" ? "Gerando…" : native ? "Compartilhar card" : "Salvar card (PNG)"}
-                    </ActionButton>
-                    <ActionButton onClick={() => doExport("story")} disabled={!!busy}>
-                      {busy === "story" ? "Gerando…" : native ? "Compartilhar nos Stories" : "Imagem para Stories"}
-                    </ActionButton>
-                  </div>
+                <div className="mt-10">
+                  <ShareButton card={card} />
+                  {isOwner && !card.isPublic && (
+                    <p className="text-sm text-dim">Card privado: quem abrir o link vê só a obra, sem sua nota.</p>
+                  )}
                 </div>
               )}
 
@@ -271,7 +255,6 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
           </button>
         </div>
       </div>
-      {stage}
     </div>
   );
 }
