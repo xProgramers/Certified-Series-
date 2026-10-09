@@ -362,3 +362,21 @@ body {
   color: var(--color-gold);
   border-color: color-mix(in srgb, var(--color-gold) 55%, transparent);
 }
+
+/* Links and lists inside the privacy policy, terms and account pages */
+.legal a {
+  color: var(--color-paper);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.legal ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.legal li + li {
+  margin-top: 0.4rem;
+}
+.legal strong {
+  color: var(--color-paper);
+  font-weight: 500;
+}

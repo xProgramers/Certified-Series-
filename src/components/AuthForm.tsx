@@ -60,6 +60,20 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
         {pending ? "Um momento…" : mode === "login" ? "Entrar" : "Criar minha coleção"}
       </button>
 
+      {mode === "signup" && (
+        <p className="text-center text-xs leading-relaxed text-dim">
+          Ao criar a conta você aceita os{" "}
+          <Link href="/termos" className="text-mute underline underline-offset-4 hover:text-paper">
+            termos de uso
+          </Link>{" "}
+          e a{" "}
+          <Link href="/privacidade" className="text-mute underline underline-offset-4 hover:text-paper">
+            política de privacidade
+          </Link>
+          .
+        </p>
+      )}
+
       <p className="text-center text-sm text-dim">
         {mode === "login" ? (
           <>
