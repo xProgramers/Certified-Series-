@@ -73,6 +73,10 @@ export default async function AchievementsPage({ params }: Props) {
             <p className="mt-4 font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-dim sm:text-[11px] sm:tracking-[0.18em]">
               {earnedKinds} de {ACHIEVEMENTS.length} conquistas · {held.length} {held.length === 1 ? "selo" : "selos"}
             </p>
+            <p className="mt-6 max-w-xl text-sm leading-relaxed text-mute">
+              Toda conquista vem de um card concluído. Toque em qualquer medalha para ver a regra com um exemplo. Se um card
+              for apagado ou a nota mudar, o selo que dependia dele sai junto.
+            </p>
           </div>
         </header>
         <AchievementsView tiles={tiles} isOwner={isOwner} />

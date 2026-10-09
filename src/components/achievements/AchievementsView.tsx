@@ -25,8 +25,16 @@ export type Tile = {
 };
 
 const FAMILIES = [
-  { family: "obra", title: "Selos de obra", lede: "Ganhos por um card. Repetem a cada obra, franquia ou diretor." },
-  { family: "marco", title: "Marcos", lede: "A coleção inteira, um degrau de cada vez." },
+  {
+    family: "obra",
+    title: "Selos de obra",
+    lede: "Ganhos por um card específico, e o selo aparece nele. Dá para ganhar o mesmo várias vezes: um por obra, franquia ou diretor.",
+  },
+  {
+    family: "marco",
+    title: "Marcos",
+    lede: "Contam a coleção inteira e são ganhos uma vez só. O selo fica no card que fez você chegar lá.",
+  },
 ] as const;
 
 export function rarityWord(share: number) {
@@ -107,9 +115,12 @@ function TileButton({ tile, onOpen }: { tile: Tile; onOpen: () => void }) {
       </span>
       {earned && labels.length > 0 ? (
         <span className="mt-2 line-clamp-2 max-w-[22ch] text-[13px] leading-snug text-mute">{labels.join(" · ")}</span>
-      ) : !earned && !hidden ? (
-        <span className="mt-2 max-w-[24ch] text-[13px] leading-snug text-dim">{def.rule}</span>
-      ) : null}
+      ) : (
+        <span className="mt-2 max-w-[24ch] text-[13px] leading-snug text-dim">{hidden ? def.hint : def.rule}</span>
+      )}
+      <span className="mt-2 text-[12px] text-dim underline decoration-line-strong underline-offset-4 transition-colors group-hover:text-paper">
+        Como ganhar
+      </span>
     </button>
   );
 }
@@ -136,9 +147,9 @@ function Detail({ tile, isOwner, onClose }: { tile: Tile; isOwner: boolean; onCl
           <p className="mx-auto mt-5 max-w-md font-serif text-xl italic leading-snug text-mute md:mx-0">
             {hidden ? "Algumas coisas só se revelam depois dos créditos." : def.story}
           </p>
-          {!hidden && <p className="mt-5 text-sm text-dim">{def.rule}</p>}
+          <HowTo achievement={tile.key} hidden={!!hidden} />
           {tile.share != null && (
-            <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.2em] text-dim">
+            <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.2em] text-dim">
               {Math.max(1, Math.round(tile.share * 100))}% dos colecionadores têm
             </p>
           )}
@@ -169,6 +180,30 @@ function Detail({ tile, isOwner, onClose }: { tile: Tile; isOwner: boolean; onCl
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** The rule, a worked example and the fine print: what it takes, without guessing. */
+function HowTo({ achievement, hidden }: { achievement: AchievementKey; hidden: boolean }) {
+  const def = ACHIEVEMENT_BY_KEY[achievement];
+  return (
+    <div className="mx-auto mt-7 max-w-md rounded-2xl border border-line bg-ink-1/60 p-5 text-left md:mx-0">
+      <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-gold">Como ganhar</p>
+      {hidden ? (
+        <p className="mt-2 text-[15px] leading-snug text-paper">
+          É secreta: a regra aparece quando você a conquistar. Dica: {def.hint?.toLowerCase()}
+        </p>
+      ) : (
+        <>
+          <p className="mt-2 text-[15px] leading-snug text-paper">{def.rule}</p>
+          <p className="mt-3 text-sm leading-snug text-mute">
+            <span className="text-dim">Exemplo: </span>
+            {def.example}
+          </p>
+          {def.note && <p className="mt-2 text-sm leading-snug text-dim">{def.note}</p>}
+        </>
+      )}
     </div>
   );
 }
