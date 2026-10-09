@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { createPortal } from "react-dom";
 import { formatCollectionNumber, HOUSE_PALETTE, type CardData } from "@/lib/card-types";
 import { posterUrl } from "@/lib/images";
+import { useIsNativeApp, shareImage } from "@/lib/native";
 import { extractPalette } from "@/lib/palette";
 import { ContentCard } from "./ContentCard";
 
@@ -18,6 +19,8 @@ type Job = { card: CardData; format: ExportFormat; resolve: () => void; reject: 
  * html-to-image:
  *   card  → 1080 × 1728  (the piece alone)
  *   story → 1080 × 1920  (Instagram/Stories composition)
+ * In the Android app the PNG goes to the system share sheet instead of a
+ * download (`native`), since the WebView can't save files.
  */
 export function useCardExport() {
   const [job, setJob] = useState<Job | null>(null);
@@ -31,8 +34,9 @@ export function useCardExport() {
     });
   }, []);
 
+  const native = useIsNativeApp();
   const stage = job ? <ExportStage job={job} /> : null;
-  return { exportCard, busy, stage };
+  return { exportCard, busy, stage, native };
 }
 
 function ExportStage({ job }: { job: Job }) {
@@ -69,11 +73,14 @@ function ExportStage({ job }: { job: Job }) {
         await toPng(node, opts);
         const url = await toPng(node, opts);
         if (cancelled) return;
-        const a = document.createElement("a");
         const slug = card.title.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-        a.download = `certified-${formatCollectionNumber(card.collectionNumber)}-${slug}${job.format === "story" ? "-story" : ""}.png`;
-        a.href = url;
-        a.click();
+        const filename = `certified-${formatCollectionNumber(card.collectionNumber)}-${slug}${job.format === "story" ? "-story" : ""}.png`;
+        if (!(await shareImage(url, filename, card.title))) {
+          const a = document.createElement("a");
+          a.download = filename;
+          a.href = url;
+          a.click();
+        }
         job.resolve();
       } catch (e) {
         job.reject(e);

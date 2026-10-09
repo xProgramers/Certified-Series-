@@ -58,7 +58,7 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const { exportCard, busy, stage } = useCardExport();
+  const { exportCard, busy, stage, native } = useCardExport();
 
   const preview: CardData = mode === "edit" ? { ...card, ...values, completedAt: values.completedAt + "T12:00:00.000Z" } : card;
   const inProgress = card.status === "in_progress";
@@ -104,7 +104,7 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
     setError(null);
     try {
       await exportCard(card, f);
-      setNotice(f === "story" ? "Imagem para Stories salva." : "Card salvo como PNG.");
+      if (!native) setNotice(f === "story" ? "Imagem para Stories salva." : "Card salvo como PNG.");
     } catch {
       setError("Não foi possível gerar a imagem. Tente novamente.");
     }
@@ -205,10 +205,10 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
                   <p className="eyebrow">Compartilhar</p>
                   <div className="flex flex-wrap gap-2">
                     <ActionButton primary onClick={() => doExport("card")} disabled={!!busy}>
-                      {busy === "card" ? "Gerando…" : "Salvar card (PNG)"}
+                      {busy === "card" ? "Gerando…" : native ? "Compartilhar card" : "Salvar card (PNG)"}
                     </ActionButton>
                     <ActionButton onClick={() => doExport("story")} disabled={!!busy}>
-                      {busy === "story" ? "Gerando…" : "Imagem para Stories"}
+                      {busy === "story" ? "Gerando…" : native ? "Compartilhar nos Stories" : "Imagem para Stories"}
                     </ActionButton>
                   </div>
                 </div>

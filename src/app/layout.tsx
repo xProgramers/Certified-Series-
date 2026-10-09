@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CompletionRevealHost } from "@/components/CompletionReveal";
 import { MobileTabBar } from "@/components/MobileTabBar";
+import { NativeAppBridge } from "@/components/NativeAppBridge";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/auth";
 import { THEME_BG, themeScript } from "@/lib/theme";
@@ -26,6 +27,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: THEME_BG.dark,
+  // Edge to edge in the Android app and on notched iPhones; globals.css pads with the safe areas
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -40,7 +43,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="grain min-h-full flex flex-col">
+      <body className="grain safe-x min-h-full flex flex-col">
         <a
           href="#conteudo"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-paper focus:px-4 focus:py-2 focus:text-ink-0"
@@ -54,6 +57,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SiteFooter />
         {user && <MobileTabBar username={user.username} />}
         <CompletionRevealHost />
+        <NativeAppBridge />
       </body>
     </html>
   );

@@ -10,8 +10,8 @@ const navLink = "px-2 py-2 text-mute transition-colors hover:text-paper";
 export async function SiteHeader() {
   const user = await getCurrentUser();
   return (
-    // The Android app draws under the status bar; Capacitor sets --safe-area-inset-top there
-    <header className="sticky top-0 z-40 bg-ink-0/80 pt-[var(--safe-area-inset-top,env(safe-area-inset-top,0px))] backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
+    // The Android app draws under the status bar; safe-top pads it (globals.css)
+    <header className="safe-top sticky top-0 z-40 bg-ink-0/80 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
       <div className={`mx-auto flex max-w-[1440px] ${user ? "h-12 sm:h-16" : "h-16"} items-center justify-between gap-4 px-4 sm:px-8`}>
         <Link href="/" aria-label="Certified Series — início" className="shrink-0">
           <Wordmark compact={!!user} />
