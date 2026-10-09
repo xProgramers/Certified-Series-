@@ -1,5 +1,5 @@
 import "server-only";
-import type { ContentType, SeasonInfo } from "@/db/schema";
+import type { ContentType, FranchisePart, SeasonInfo } from "@/db/schema";
 import { MOCK_CATALOG, findMock, mockImagePath, mockVotes, searchMock, type MockTitle } from "./mock-catalog";
 import { MOCK_COLLECTIONS, MOCK_CREDITS, MOCK_PROVIDERS } from "./mock-extras";
 import { brand, toProvider, uniqueProviders, type WatchProvider, type WatchProviders } from "./providers";
@@ -37,6 +37,10 @@ export type TitleDetail = TitleSummary & {
   /** TMDB audience score (0–10) and its number of votes. */
   voteAverage: number | null;
   voteCount: number | null;
+  /** Movies only: the TMDB collection (franchise) it belongs to. */
+  collectionId: number | null;
+  /** Directors (movies) or creators (series), by name. */
+  makers: string[];
 };
 
 const API = "https://api.themoviedb.org/3";
@@ -129,6 +133,8 @@ function fromMock(m: MockTitle): TitleDetail {
     seasonList: m.type === "series" ? mockSeasons(m) : null,
     voteAverage: votes?.[0] ?? null,
     voteCount: votes?.[1] ?? null,
+    collectionId: m.type === "movie" ? (MOCK_COLLECTIONS.find((c) => c.parts.includes(m.id))?.id ?? null) : null,
+    makers: m.type === "movie" ? (MOCK_CREDITS[m.id]?.directors ?? []) : [],
   };
 }
 
@@ -230,6 +236,7 @@ type TmdbTvDetail = {
   last_episode_to_air?: TmdbEpisodeRef | null;
   next_episode_to_air?: TmdbEpisodeRef | null;
   content_ratings?: { results: { iso_3166_1: string; rating: string }[] };
+  created_by?: { name: string }[];
   vote_average?: number;
   vote_count?: number;
 };
@@ -283,6 +290,8 @@ type TmdbMovieDetail = {
   production_companies: { name: string }[];
   status: string;
   release_dates?: { results: { iso_3166_1: string; release_dates: { certification: string }[] }[] };
+  belongs_to_collection?: { id: number; name: string } | null;
+  credits?: { crew: { name: string; job: string }[] };
   vote_average?: number;
   vote_count?: number;
 };
@@ -303,7 +312,7 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
   }
   try {
     if (type === "movie") {
-      const d = await tmdb<TmdbMovieDetail>(`/movie/${id}`, { append_to_response: "release_dates" });
+      const d = await tmdb<TmdbMovieDetail>(`/movie/${id}`, { append_to_response: "release_dates,credits" });
       return {
         type,
         id: d.id,
@@ -330,6 +339,8 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
         seasonList: null,
         voteAverage: d.vote_average ?? null,
         voteCount: d.vote_count ?? null,
+        collectionId: d.belongs_to_collection?.id ?? null,
+        makers: [...new Set((d.credits?.crew ?? []).filter((c) => c.job === "Director").map((c) => c.name))],
       };
     }
     const d = await tmdb<TmdbTvDetail>(`/tv/${id}`, { append_to_response: "content_ratings" });
@@ -356,6 +367,8 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
       seasonList: parseSeasons(d),
       voteAverage: d.vote_average ?? null,
       voteCount: d.vote_count ?? null,
+      collectionId: null,
+      makers: (d.created_by ?? []).map((c) => c.name),
     };
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("TMDB 404")) return null;
@@ -422,6 +435,42 @@ const mockPerson = (name: string, role: string | null = null): Person => ({
   profilePath: null,
 });
 
+/** "Coleção Harry Potter" / "The Matrix Collection" → "Harry Potter" / "The Matrix". */
+function franchiseName(name: string) {
+  return name.replace(/^(Coleção|Collection)\s+(de\s+)?/i, "").replace(/\s*[-–:]?\s*(Coleção|Collection)\s*$/i, "") || name;
+}
+
+export type Franchise = { id: number; name: string; parts: FranchisePart[] };
+
+/** A TMDB collection with every part and whether it is out yet (achievements: "Saga completa"). */
+export async function getFranchise(id: number): Promise<Franchise | null> {
+  if (!tmdbConfigured()) {
+    const c = MOCK_COLLECTIONS.find((x) => x.id === id);
+    if (!c) return null;
+    return {
+      id,
+      name: c.name,
+      parts: c.parts.map((p) => ({ id: p, year: findMock("movie", p)?.firstAirYear ?? null, released: true })),
+    };
+  }
+  try {
+    const c = await tmdb<{ id: number; name: string; parts: TmdbResult[] }>(`/collection/${id}`);
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      id: c.id,
+      name: franchiseName(c.name),
+      parts: c.parts.map((p) => ({
+        id: p.id,
+        year: year(p.release_date),
+        released: Boolean(p.release_date && p.release_date <= today),
+      })),
+    };
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("TMDB 404")) return null;
+    throw e;
+  }
+}
+
 /** Cast, director/creators, franchise and similar titles for the title page. */
 export async function getTitleExtras(type: ContentType, id: number): Promise<TitleExtras> {
   if (!tmdbConfigured()) return mockExtras(type, id);
@@ -449,7 +498,7 @@ export async function getTitleExtras(type: ContentType, id: number): Promise<Tit
       );
       if (c && c.parts.length > 1) {
         franchise = {
-          name: c.name.replace(/^(Coleção|Collection)\s+(de\s+)?/i, "").replace(/\s*[-–:]?\s*(Coleção|Collection)\s*$/i, "") || c.name,
+          name: franchiseName(c.name),
           parts: c.parts
             .map((r) => fromResult({ ...r, genre_ids: r.genre_ids ?? [] }, "movie"))
             .sort((a, b) => (a.year ?? 9999) - (b.year ?? 9999)),

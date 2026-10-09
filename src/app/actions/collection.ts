@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { CONTENT_TYPES, type ContentType } from "@/db/schema";
+import type { Earned } from "@/lib/achievements";
+import { syncAchievements } from "@/lib/achievements-data";
 import { getCurrentUser } from "@/lib/auth";
 import { certificationFor, titleHref, type CardData } from "@/lib/card-types";
 import { getEntry, nextCollectionNumber, nextViewingNumber, releasedSeasons, upsertTitle } from "@/lib/data";
@@ -52,8 +54,19 @@ function ratedColumns(v: EntryFields) {
 
 function revalidate(username: string, type: ContentType, id: number) {
   revalidatePath(`/u/${username}`);
+  revalidatePath(`/u/${username}/conquistas`);
   revalidatePath(titleHref(type, id));
   revalidatePath("/search");
+}
+
+/** Achievements follow every change to a card; a failure there never fails the change itself. */
+async function sync(userId: string): Promise<Earned[]> {
+  try {
+    return await syncAchievements(userId);
+  } catch (e) {
+    console.error("achievements sync failed", e);
+    return [];
+  }
 }
 
 /** Metadata always comes from TMDB on the server, never from the client. */
@@ -159,8 +172,13 @@ const completeSchema = z.object({
   ...entryFields,
 });
 
-/** Completes a work with rating + reflection. The card gains colour and its certification. */
-export async function completeEntry(input: z.input<typeof completeSchema>): Promise<Result<CardData>> {
+/**
+ * Completes a work with rating + reflection. The card gains colour and its
+ * certification; `unlocked` lists the achievements this card just earned.
+ */
+export async function completeEntry(
+  input: z.input<typeof completeSchema>,
+): Promise<Result<{ card: CardData; unlocked: Earned[] }>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Entre na sua conta para criar cards." };
   const parsed = completeSchema.safeParse(input);
@@ -204,9 +222,10 @@ export async function completeEntry(input: z.input<typeof completeSchema>): Prom
     }
   }
 
+  const unlocked = await sync(user.id);
   revalidate(user.username, type, id);
   const card = await getEntry(entryId);
-  return card ? { ok: true, data: card } : { ok: false, error: "Erro ao criar o card." };
+  return card ? { ok: true, data: { card, unlocked } } : { ok: false, error: "Erro ao criar o card." };
 }
 
 const seasonsSchema = z.object({
@@ -272,6 +291,7 @@ export async function setWatchedSeasons(input: z.input<typeof seasonsSchema>): P
     .returning({ id: schema.watchEntries.id });
   if (!res.length) return { ok: false, error: "Série não encontrada na sua coleção." };
 
+  await sync(user.id);
   revalidate(user.username, "series", id);
   const card = await getEntry(entryId);
   return card ? { ok: true, data: card } : { ok: false, error: "Erro ao salvar." };
@@ -300,6 +320,7 @@ export async function updateEntry(input: z.input<typeof updateSchema>): Promise<
     .returning({ type: schema.watchEntries.contentType, id: schema.watchEntries.contentId });
   if (!res.length) return { ok: false, error: "Card não encontrado." };
 
+  await sync(user.id);
   revalidate(user.username, res[0].type, res[0].id);
   const card = await getEntry(v.entryId);
   return card ? { ok: true, data: card } : { ok: false, error: "Card não encontrado." };
@@ -309,11 +330,16 @@ export async function deleteEntry(entryId: string): Promise<Result<null>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Sessão expirada." };
   if (!z.string().uuid().safeParse(entryId).success) return { ok: false, error: "Card inválido." };
+  // The seals pinned to this card go with it (sync below re-awards milestones to the next card in line)
+  await db
+    .delete(schema.userAchievements)
+    .where(and(eq(schema.userAchievements.entryId, entryId), eq(schema.userAchievements.userId, user.id)));
   const res = await db
     .delete(schema.watchEntries)
     .where(and(eq(schema.watchEntries.id, entryId), eq(schema.watchEntries.userId, user.id)))
     .returning({ type: schema.watchEntries.contentType, id: schema.watchEntries.contentId });
   if (!res.length) return { ok: false, error: "Card não encontrado." };
+  await sync(user.id);
   revalidate(user.username, res[0].type, res[0].id);
   return { ok: true, data: null };
 }

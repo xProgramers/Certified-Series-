@@ -35,6 +35,7 @@ const SERIES: [number, number | null, string, string, boolean?][] = [
   [4607, 7, "2024-09-30", ""],
   [2316, 8.5, "2026-09-27", "Rir de vergonha alheia nunca foi tão reconfortante. Os personagens viraram amigos."],
   [71912, 4, "2026-07-02", "Muito barulho, pouca alma. Terminei por teimosia."],
+  [90462, 8, "2026-08-29", "Ninguém fala dessa série e ela é deliciosamente absurda. Terror que sabe rir de si."],
   [94997, null, "2026-09-30", ""],
   [110316, null, "2026-10-02", ""],
 ];
@@ -43,6 +44,10 @@ const MOVIES: [number, number | null, string, string, boolean?][] = [
   [496243, 9.5, "2025-10-11", "Uma escada que desce e não para mais. Rir e sentir vergonha ao mesmo tempo.", true],
   [157336, 9, "2026-01-30", "Saí do cinema olhando para o céu e pensando no meu pai."],
   [603, 8.5, "2025-05-17", "Envelheceu como uma pergunta, não como efeito especial."],
+  [604, 7.5, "2025-06-02", "Mais ambição do que fôlego, mas a cena da estrada ainda impressiona."],
+  [605, 6.5, "2025-06-09", "Um fim grandioso que fala mais alto do que diz."],
+  [624860, 5.5, "2026-09-12", "Uma carta de amor confusa à própria trilogia. Fechei o ciclo."],
+  [238, 10, "2025-02-08", "Cada silêncio pesa. Entendi por que todo mundo fala desse filme há cinquenta anos.", true],
   [129, 10, "2026-06-08", "Coragem pequena, do tamanho de uma criança. Perfeito."],
   [19995, 4.5, "2026-03-14", "Lindo de olhar, vazio de sentir. Saí sem nada para levar comigo."],
   [872585, null, "2026-10-01", ""],
@@ -57,6 +62,7 @@ async function main() {
   const username = "luan";
   const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) });
   if (existing) {
+    await db.delete(schema.userAchievements).where(eq(schema.userAchievements.userId, existing.id));
     await db.delete(schema.favorites).where(eq(schema.favorites.userId, existing.id));
     await db.delete(schema.watchEntries).where(eq(schema.watchEntries.userId, existing.id));
     await db.delete(schema.users).where(eq(schema.users.id, existing.id));

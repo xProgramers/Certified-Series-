@@ -19,6 +19,12 @@ export async function SiteHeader() {
                 Coleção
               </Link>
               <Link
+                href={`/u/${user.username}/conquistas`}
+                className="hidden px-2 py-2 text-mute transition-colors hover:text-paper sm:inline"
+              >
+                Conquistas
+              </Link>
+              <Link
                 href="/search"
                 aria-label="Buscar e adicionar"
                 className="flex items-center gap-2 px-2 py-2 text-mute transition-colors hover:text-paper"

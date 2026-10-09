@@ -1,3 +1,4 @@
+import type { CardBadge } from "./achievements";
 import type { CardPalette, CertificationStatus, ContentType, EntryStatus, SeasonInfo } from "@/db/schema";
 
 export type { CertificationStatus, ContentType, EntryStatus, SeasonInfo };
@@ -40,6 +41,8 @@ export type CardData = {
   watchedSeasons?: number[] | null;
   /** Rated series whose card went back to black & white because a new season came out. */
   newSeason?: boolean;
+  /** Achievement seals this card earned (at most two, most prestigious first). */
+  badges?: CardBadge[];
 };
 
 export const HOUSE_PALETTE: CardPalette = {
