@@ -12,9 +12,9 @@ export async function SiteHeader() {
   return (
     // The Android app draws under the status bar; Capacitor sets --safe-area-inset-top there
     <header className="sticky top-0 z-40 bg-ink-0/80 pt-[var(--safe-area-inset-top,env(safe-area-inset-top,0px))] backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8">
+      <div className={`mx-auto flex max-w-[1440px] ${user ? "h-12 sm:h-16" : "h-16"} items-center justify-between gap-4 px-4 sm:px-8`}>
         <Link href="/" aria-label="Certified Series — início" className="shrink-0">
-          <Wordmark />
+          <Wordmark compact={!!user} />
         </Link>
         <nav aria-label="Principal" className="flex items-center gap-1 text-sm sm:gap-3">
           {user ? (
