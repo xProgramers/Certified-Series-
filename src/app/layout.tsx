@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { AdsBoot } from "@/components/ads/AdsBoot";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CompletionRevealHost } from "@/components/CompletionReveal";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </main>
         <SiteFooter />
         <CompletionRevealHost />
+        <AdsBoot />
       </body>
     </html>
   );

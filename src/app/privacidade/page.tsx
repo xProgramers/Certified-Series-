@@ -34,7 +34,8 @@ export default function PrivacyPage() {
           <li>
             <strong>Anúncios (só no aplicativo Android)</strong>: o Google AdMob pode usar o identificador de publicidade
             do aparelho, endereço IP e dados de uso para exibir e medir anúncios. Você escolhe se aceita anúncios
-            personalizados na primeira abertura do app e pode mudar isso nas configurações do Android.
+            personalizados na primeira abertura do app e pode mudar de ideia quando quiser em{" "}
+            <strong>Privacidade dos anúncios</strong>, no rodapé do app.
           </li>
         </ul>
         <p>Não pedimos localização, contatos, câmera, microfone nem arquivos do seu aparelho.</p>

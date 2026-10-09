@@ -45,7 +45,7 @@ export function Modal({
         const t = e.target as HTMLElement;
         if (t === ref.current || t.hasAttribute("data-backdrop")) onClose();
       }}
-      className={`m-0 h-dvh max-h-none w-screen max-w-none bg-transparent p-0 text-paper backdrop:bg-ink-0/90 backdrop:backdrop-blur-md open:fade-in ${className}`}
+      className={`m-0 h-[calc(100dvh-var(--ad-inset,0px))] max-h-none w-screen max-w-none bg-transparent p-0 text-paper backdrop:bg-ink-0/90 backdrop:backdrop-blur-md open:fade-in ${className}`}
     >
       {open && children}
     </dialog>
