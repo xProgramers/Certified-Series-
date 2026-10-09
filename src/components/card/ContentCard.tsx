@@ -119,7 +119,8 @@ export function ContentCard({ card, posterSize = "w500", priority, className }: 
             {!inProgress && card.badges?.length ? (
               <span className="sc-badges">
                 {card.badges.map((b) => {
-                  const name = ACHIEVEMENT_BY_KEY[b.key].name + (b.label ? ` · ${b.label}` : "");
+                  const def = ACHIEVEMENT_BY_KEY[b.key];
+                  const name = `${def.name}${b.label ? ` · ${b.label}` : ""}\n${def.rule}`;
                   return <Medal key={b.key} achievement={b.key} title={name} />;
                 })}
               </span>

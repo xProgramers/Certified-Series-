@@ -103,10 +103,11 @@ function Unlocked({ earned, username, onNavigate }: { earned: Earned[]; username
         {list.map((e, i) => {
           const def = ACHIEVEMENT_BY_KEY[e.key];
           return (
-            <li key={`${e.key}${e.scope}`} className="flex w-32 flex-col items-center">
+            <li key={`${e.key}${e.scope}`} className="flex w-44 flex-col items-center">
               <MedalStage achievement={e.key} className="w-28" delay={1600 + i * 350} />
               <span className="mt-3 font-serif text-xl leading-none">{def.name}</span>
               {e.label && <span className="mt-1 text-xs text-mute">{e.label}</span>}
+              <span className="mt-2 text-xs leading-snug text-dim">{def.rule}</span>
             </li>
           );
         })}
