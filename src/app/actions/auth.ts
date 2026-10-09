@@ -76,7 +76,7 @@ export async function login(_: AuthState, form: FormData): Promise<AuthState> {
   if (!user || !ok) return { error: "Usuário ou senha incorretos.", fields };
 
   await createSession(user.id);
-  const next = typeof raw.next === "string" && raw.next.startsWith("/") && !raw.next.startsWith("//") ? raw.next : `/u/${user.username}`;
+  const next = typeof raw.next === "string" && raw.next.startsWith("/") && !raw.next.startsWith("//") ? raw.next : "/";
   redirect(next);
 }
 
