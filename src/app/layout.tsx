@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { CompletionRevealHost } from "@/components/CompletionReveal";
 import { SiteHeader } from "@/components/SiteHeader";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main id="conteudo" className="flex-1">
           {children}
         </main>
+        <CompletionRevealHost />
       </body>
     </html>
   );

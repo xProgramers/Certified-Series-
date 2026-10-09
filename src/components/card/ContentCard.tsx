@@ -13,7 +13,9 @@ import {
   type CardData,
 } from "@/lib/card-types";
 import { posterUrl, type ImageSize } from "@/lib/images";
+import { ACHIEVEMENT_BY_KEY } from "@/lib/achievements";
 import { extractPalette } from "@/lib/palette";
+import { Medal } from "../achievements/Medal";
 
 type Props = {
   card: CardData;
@@ -56,6 +58,7 @@ export function usePalette(card: CardData): CardPalette {
  *   in progress   → same card in black & white, no certification
  *   completed     → full colour + CERTIFIED (rating ≥ 5.0) or NOT CERTIFIED (< 5.0)
  * Going from in progress to completed fades the colour back in (see .sc filter).
+ * A completed card may carry up to two achievement seals under its N°.
  */
 export function ContentCard({ card, posterSize = "w500", priority, className }: Props) {
   const palette = usePalette(card);
@@ -113,6 +116,14 @@ export function ContentCard({ card, posterSize = "w500", priority, className }: 
                 ✦ FAV
               </span>
             )}
+            {!inProgress && card.badges?.length ? (
+              <span className="sc-badges">
+                {card.badges.map((b) => {
+                  const name = ACHIEVEMENT_BY_KEY[b.key].name + (b.label ? ` · ${b.label}` : "");
+                  return <Medal key={b.key} achievement={b.key} title={name} />;
+                })}
+              </span>
+            ) : null}
           </div>
           <Stamp id={`stamp${uid}`} viewing={card.viewingNumber} inProgress={inProgress} />
         </header>
