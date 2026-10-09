@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CompletionRevealHost } from "@/components/CompletionReveal";
+import { NativeAppBridge } from "@/components/NativeAppBridge";
 import { SiteHeader } from "@/components/SiteHeader";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
@@ -24,6 +25,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: THEME_BG.dark,
+  // Edge to edge in the Android app and on notched iPhones; globals.css pads with the safe areas
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -37,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="grain min-h-full flex flex-col">
+      <body className="grain safe-x min-h-full flex flex-col">
         <a
           href="#conteudo"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-paper focus:px-4 focus:py-2 focus:text-ink-0"
@@ -50,6 +53,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </main>
         <SiteFooter />
         <CompletionRevealHost />
+        <NativeAppBridge />
       </body>
     </html>
   );

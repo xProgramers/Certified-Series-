@@ -58,6 +58,7 @@ export function CloseButton({ onClick, className = "" }: { onClick: () => void; 
       type="button"
       onClick={onClick}
       aria-label="Fechar"
+      style={{ marginTop: "var(--safe-top)" }}
       className={`grid h-10 w-10 place-items-center rounded-full border border-line-strong bg-ink-0/60 text-mute backdrop-blur transition-colors hover:text-paper ${className}`}
     >
       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>

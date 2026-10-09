@@ -7,7 +7,7 @@ import { ThemeToggle } from "./ThemeToggle";
 export async function SiteHeader() {
   const user = await getCurrentUser();
   return (
-    <header className="sticky top-0 z-40 bg-ink-0/80 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
+    <header className="safe-top sticky top-0 z-40 bg-ink-0/80 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8">
         <Link href={user ? `/u/${user.username}` : "/"} aria-label="Certified Series — início" className="shrink-0">
           <Wordmark />

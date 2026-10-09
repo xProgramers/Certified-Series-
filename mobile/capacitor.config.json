@@ -1,0 +1,19 @@
+{
+  "appId": "com.certifiedseries.app",
+  "appName": "Certified Series",
+  "webDir": "www",
+  "server": {
+    "url": "https://certified-series.vercel.app",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "backgroundColor": "#0a0a0b"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover",
+      "style": "DARK"
+    }
+  }
+}

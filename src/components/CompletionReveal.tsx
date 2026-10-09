@@ -53,7 +53,7 @@ export function CompletionRevealHost() {
 
 function RevealBody({ card, unlocked, username, onClose }: Reveal & { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
-  const { exportCard, busy, stage } = useCardExport();
+  const { exportCard, busy, stage, native } = useCardExport();
   const certified = card.certification === "certified";
   return (
     <div data-backdrop className="flex min-h-dvh flex-col items-center justify-center gap-10 overflow-y-auto px-4 py-16">
@@ -78,7 +78,7 @@ function RevealBody({ card, unlocked, username, onClose }: Reveal & { onClose: (
             Ver na coleção
           </Link>
           <ActionButton onClick={() => exportCard(card, "card").catch(() => setError("Não foi possível gerar a imagem."))} disabled={!!busy}>
-            {busy === "card" ? "Gerando…" : "Salvar PNG"}
+            {busy === "card" ? "Gerando…" : native ? "Compartilhar" : "Salvar PNG"}
           </ActionButton>
           <ActionButton onClick={() => exportCard(card, "story").catch(() => setError("Não foi possível gerar a imagem."))} disabled={!!busy}>
             {busy === "story" ? "Gerando…" : "Stories"}

@@ -6,7 +6,7 @@ const link = "transition-colors hover:text-paper";
 export async function SiteFooter() {
   const user = await getCurrentUser();
   return (
-    <footer className="border-t border-line">
+    <footer className="safe-bottom border-t border-line">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-8 text-xs text-dim sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <nav aria-label="Institucional" className="flex flex-wrap gap-x-5 gap-y-2">
           <Link href="/privacidade" className={link}>
