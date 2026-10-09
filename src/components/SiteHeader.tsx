@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
-import { HomeIcon, SearchIcon } from "./NavIcons";
+import { GearIcon, HomeIcon, SearchIcon } from "./NavIcons";
 import { Wordmark } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -34,8 +34,14 @@ export async function SiteHeader() {
                 <SearchIcon />
                 Buscar
               </Link>
-              <ThemeToggle />
-              <form action={logout}>
+              {/* Phones: theme and sign-out live in Configurações, behind the gear */}
+              <span className="hidden sm:contents">
+                <ThemeToggle />
+              </span>
+              <Link href="/configuracoes" aria-label="Configurações" title="Configurações" className={navLink}>
+                <GearIcon className="h-5 w-5 sm:h-[17px] sm:w-[17px]" />
+              </Link>
+              <form action={logout} className="hidden sm:block">
                 <button className="px-2 py-2 text-dim transition-colors hover:text-paper" type="submit">
                   Sair
                 </button>

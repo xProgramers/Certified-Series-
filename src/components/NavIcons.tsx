@@ -40,3 +40,18 @@ export function MedalIcon({ className = "h-4 w-4" }: IconProps) {
     </svg>
   );
 }
+
+export function GearIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden>
+      <circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M10 2.5l1.3 1.9 2.2-.6.5 2.2 2.2.5-.6 2.2 1.9 1.3-1.9 1.3.6 2.2-2.2.5-.5 2.2-2.2-.6L10 17.5l-1.3-1.9-2.2.6-.5-2.2-2.2-.5.6-2.2L2.5 10l1.9-1.3-.6-2.2 2.2-.5.5-2.2 2.2.6z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

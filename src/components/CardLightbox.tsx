@@ -126,7 +126,8 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
   return (
     <div data-backdrop className="flex min-h-dvh items-start justify-center overflow-y-auto px-4 py-16 sm:items-center sm:px-8">
       <CloseButton onClick={onClose} className="fixed right-4 top-4 z-10 sm:right-6 sm:top-6" />
-      <div className="grid w-full max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-14">
+      {/* Taps on the empty space around the card close it too (Modal checks data-backdrop) */}
+      <div data-backdrop className="grid w-full max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-14">
         <div className="mx-auto w-full max-w-[min(420px,78vw)] rise">
           <ContentCard card={preview} posterSize="w780" priority />
         </div>
@@ -257,6 +258,17 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
             {error && <p className="text-danger">{error}</p>}
             {!error && notice && <p className="text-mute">{notice}</p>}
           </div>
+          {/* Phones: a plain way back at the end of the details, within thumb reach */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-line-strong py-3 text-sm text-mute transition-colors hover:text-paper md:hidden"
+          >
+            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>
+              <path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Voltar
+          </button>
         </div>
       </div>
       {stage}
