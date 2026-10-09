@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CompletionRevealHost } from "@/components/CompletionReveal";
+import { MobileTabBar } from "@/components/MobileTabBar";
 import { NativeAppBridge } from "@/components/NativeAppBridge";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getCurrentUser } from "@/lib/auth";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -29,7 +31,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const user = await getCurrentUser();
   return (
     // data-theme is set by the inline script before paint, hence suppressHydrationWarning
     <html
@@ -52,6 +55,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        {user && <MobileTabBar username={user.username} />}
         <CompletionRevealHost />
         <NativeAppBridge />
       </body>

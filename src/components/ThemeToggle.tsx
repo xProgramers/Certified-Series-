@@ -3,7 +3,7 @@
 import { useLayoutEffect } from "react";
 import { THEME_BG, THEME_KEY, type Theme } from "@/lib/theme";
 
-function stored(): Theme | null {
+export function storedTheme(): Theme | null {
   try {
     const t = localStorage.getItem(THEME_KEY);
     return t === "light" || t === "dark" ? t : null;
@@ -21,29 +21,36 @@ function apply(theme: Theme) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_BG[theme]);
 }
 
+/** Saves the choice ("system" forgets it and follows the device) and switches with the soft cross-fade. */
+export function chooseTheme(choice: Theme | "system") {
+  try {
+    if (choice === "system") localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, choice);
+  } catch {}
+  const root = document.documentElement;
+  root.classList.add("theme-switching");
+  apply(choice === "system" ? systemTheme() : choice);
+  setTimeout(() => root.classList.remove("theme-switching"), 450);
+  window.dispatchEvent(new Event(THEME_EVENT));
+}
+
+/** Fired after every choice, so pickers can follow toggles elsewhere on the page. */
+export const THEME_EVENT = "cs-theme";
+
 /** Sun/moon switch. Both icons are rendered; CSS shows the right one, so SSR never guesses. */
 export function ThemeToggle() {
   useLayoutEffect(() => {
     // Re-applies after React's dev remount, and follows the system until the user picks a side
-    apply(stored() ?? systemTheme());
+    apply(storedTheme() ?? systemTheme());
     const mq = matchMedia("(prefers-color-scheme: light)");
     const onChange = () => {
-      if (!stored()) apply(systemTheme());
+      if (!storedTheme()) apply(systemTheme());
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  const toggle = () => {
-    const next: Theme = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch {}
-    const root = document.documentElement;
-    root.classList.add("theme-switching");
-    apply(next);
-    setTimeout(() => root.classList.remove("theme-switching"), 450);
-  };
+  const toggle = () => chooseTheme(document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light");
 
   return (
     <button
