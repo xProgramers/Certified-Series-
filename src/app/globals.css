@@ -62,6 +62,8 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Height of the app's native ad banner, which floats over the bottom of the screen (src/lib/admob.ts) */
+  padding-bottom: var(--ad-inset, 0px);
 }
 
 ::selection {
