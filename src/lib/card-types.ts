@@ -98,6 +98,11 @@ export function titleHref(type: ContentType, id: number) {
   return `/${type === "movie" ? "movies" : "series"}/${id}`;
 }
 
+/** Public page of a card: the link people share. */
+export function cardHref(entryId: string) {
+  return `/card/${entryId}`;
+}
+
 export function personHref(id: string) {
   return `/person/${encodeURIComponent(id)}`;
 }

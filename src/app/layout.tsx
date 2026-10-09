@@ -6,6 +6,7 @@ import { MobileTabBar } from "@/components/MobileTabBar";
 import { NativeAppBridge } from "@/components/NativeAppBridge";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/auth";
+import { SITE_URL } from "@/lib/site";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -19,10 +20,12 @@ const instrument = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: "Certified Series — seu repertório, em cartaz", template: "%s · Certified Series" },
   description: "Cada série que você termina vira um card na sua coleção pessoal.",
   applicationName: "Certified Series",
   appleWebApp: { capable: true, title: "Certified", statusBarStyle: "black-translucent" },
+  openGraph: { siteName: "Certified Series", locale: "pt_BR", type: "website" },
 };
 
 export const viewport: Viewport = {
