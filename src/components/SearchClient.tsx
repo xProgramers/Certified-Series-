@@ -28,6 +28,7 @@ export function SearchClient({
   owned: initialOwned,
   signedIn,
   sample,
+  autoFocus = true,
 }: {
   initialQuery: string;
   initialType: SearchType;
@@ -35,6 +36,8 @@ export function SearchClient({
   owned: Record<string, NonNullable<Owned>>;
   signedIn: boolean;
   sample: boolean;
+  /** Off on the home page, so the phone keyboard doesn't cover the catalogue */
+  autoFocus?: boolean;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [type, setType] = useState<SearchType>(initialType);
@@ -106,7 +109,7 @@ export function SearchClient({
           ref={inputRef}
           id="q"
           type="search"
-          autoFocus
+          autoFocus={autoFocus}
           autoComplete="off"
           spellCheck={false}
           value={query}

@@ -1,17 +1,20 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ContentCard } from "@/components/card/ContentCard";
-import { getCurrentUser } from "@/lib/auth";
+import { SearchClient } from "@/components/SearchClient";
+import { getCurrentUser, type SessionUser } from "@/lib/auth";
 import type { CardData } from "@/lib/card-types";
-import { getShowcase } from "@/lib/data";
+import { getOwnership, getShowcase } from "@/lib/data";
 import { sampleCards } from "@/lib/sample-cards";
+import { popularTitles, tmdbConfigured, type SearchType } from "@/lib/tmdb";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+const TYPES: Record<string, SearchType> = { series: "series", filmes: "movie" };
+
+export default async function Home({ searchParams }: PageProps<"/">) {
   const user = await getCurrentUser();
-  // The collection is the destination: signed-in visitors go straight to it
-  if (user) redirect(`/u/${user.username}`);
+  // Signed in, home is the catalogue: what's out there, beyond the collection
+  if (user) return <Explore user={user} params={await searchParams} />;
 
   const showcase = await getShowcase(8);
   const cards: CardData[] = showcase.length >= 5 ? showcase : sampleCards();
@@ -34,15 +37,22 @@ export default async function Home() {
               href="/signup"
               className="rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-hi"
             >
-              Começar minha coleção
+              Criar conta
             </Link>
             <Link
-              href={`/u/${cards[0]?.ownerUsername ?? "luan"}`}
-              className="text-sm text-mute underline-offset-4 transition-colors hover:text-paper hover:underline"
+              href="/login"
+              className="rounded-full border border-line px-6 py-3.5 text-sm font-medium text-paper transition-colors hover:border-paper/40"
             >
-              Ver uma coleção
+              Entrar
             </Link>
           </div>
+          <Link
+            href="/search"
+            className="mt-6 inline-flex items-center gap-2 text-sm text-mute underline-offset-4 transition-colors hover:text-paper hover:underline"
+          >
+            Explorar séries e filmes sem conta
+            <span aria-hidden>→</span>
+          </Link>
         </div>
       </section>
 
@@ -75,6 +85,27 @@ export default async function Home() {
           ))}
         </ol>
       </section>
+    </div>
+  );
+}
+
+async function Explore({ user, params }: { user: SessionUser; params: Awaited<PageProps<"/">["searchParams"]> }) {
+  const { q, tipo } = params;
+  const type = (typeof tipo === "string" && TYPES[tipo]) || "all";
+  const [popular, owned] = await Promise.all([popularTitles(type).catch(() => []), getOwnership(user.id)]);
+
+  return (
+    <div className="mx-auto max-w-[1440px] px-4 pb-32 pt-8 sm:px-8 sm:pt-14">
+      <p className="eyebrow mb-3">Olá, {user.displayName}</p>
+      <SearchClient
+        initialQuery={typeof q === "string" ? q : ""}
+        initialType={type}
+        popular={popular}
+        owned={owned}
+        signedIn
+        sample={!tmdbConfigured()}
+        autoFocus={false}
+      />
     </div>
   );
 }
