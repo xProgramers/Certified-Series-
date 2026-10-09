@@ -7,6 +7,7 @@ import { byPrestige } from "@/lib/achievements";
 import { getUserAchievements, syncAchievements } from "@/lib/achievements-data";
 import { getCurrentUser } from "@/lib/auth";
 import { computeStats, getCollection, getUserByUsername, refreshSeasons } from "@/lib/data";
+import { mailto } from "@/lib/site";
 
 type Props = PageProps<"/u/[username]">;
 
@@ -89,6 +90,18 @@ export default async function ProfilePage({ params, searchParams }: Props) {
         </header>
 
         <CollectionView cards={cards} isOwner={isOwner} highlight={typeof highlight === "string" ? highlight : undefined} />
+
+        {/* Profiles are public, so anyone can flag one that breaks the terms */}
+        {!isOwner && (
+          <p className="mt-24 text-center text-xs text-dim">
+            <a
+              href={mailto(`Denúncia do perfil @${user.username}`)}
+              className="underline-offset-4 transition-colors hover:text-paper hover:underline"
+            >
+              Denunciar perfil
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );
