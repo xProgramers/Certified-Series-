@@ -6,6 +6,7 @@ import { MobileTabBar } from "@/components/MobileTabBar";
 import { NativeAppBridge } from "@/components/NativeAppBridge";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getCurrentUser } from "@/lib/auth";
+import { pushConfigured } from "@/lib/push";
 import { SITE_URL } from "@/lib/site";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
@@ -60,7 +61,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SiteFooter />
         {user && <MobileTabBar username={user.username} />}
         <CompletionRevealHost />
-        <NativeAppBridge />
+        <NativeAppBridge push={!!user && pushConfigured()} />
       </body>
     </html>
   );

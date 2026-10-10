@@ -173,7 +173,10 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
                     )}
                     {pendingSeasons ? (
                       <p className="text-sm text-dim">
-                        Sua nota {formatRating(card.rating ?? 0)} continua guardada. Com todas as temporadas marcadas, o card volta a ter cor.
+                        Sua nota {formatRating(card.rating ?? 0)} continua guardada.{" "}
+                        {seasons.some((s) => s.state === "airing")
+                          ? "Há uma temporada em exibição: quando o último episódio sair e você marcar, o card volta a ter cor."
+                          : "Com todas as temporadas marcadas, o card volta a ter cor."}
                       </p>
                     ) : (
                       <>

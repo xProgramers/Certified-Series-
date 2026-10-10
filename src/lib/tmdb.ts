@@ -1,5 +1,5 @@
 import "server-only";
-import type { ContentType, FranchisePart, SeasonInfo } from "@/db/schema";
+import type { ContentType, EpisodeRef, FranchisePart, SeasonInfo } from "@/db/schema";
 import { MOCK_CATALOG, findMock, mockImagePath, mockVotes, searchMock, type MockTitle } from "./mock-catalog";
 import { MOCK_COLLECTIONS, MOCK_CREDITS, MOCK_PROVIDERS } from "./mock-extras";
 import { brand, toProvider, uniqueProviders, type WatchProvider, type WatchProviders } from "./providers";
@@ -34,6 +34,8 @@ export type TitleDetail = TitleSummary & {
   tagline: string | null;
   /** Series only. */
   seasonList: SeasonInfo[] | null;
+  /** Series only: the latest episode already aired. */
+  lastEpisode: EpisodeRef | null;
   /** TMDB audience score (0–10) and its number of votes. */
   voteAverage: number | null;
   voteCount: number | null;
@@ -92,7 +94,7 @@ const MOVIE_GENRES: Record<number, string> = {
   37: "Faroeste",
 };
 
-async function tmdb<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+async function tmdb<T>(path: string, params: Record<string, string> = {}, fresh = false): Promise<T> {
   const url = new URL(API + path);
   url.searchParams.set("language", LANG);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -101,7 +103,8 @@ async function tmdb<T>(path: string, params: Record<string, string> = {}): Promi
       Authorization: `Bearer ${process.env.TMDB_READ_TOKEN}`,
       Accept: "application/json",
     },
-    next: { revalidate: 60 * 60 * 12 },
+    // The daily episode check needs today's data, not the 12 h cache
+    ...(fresh ? { cache: "no-store" as const } : { next: { revalidate: 60 * 60 * 12 } }),
   });
   if (!res.ok) throw new Error(`TMDB ${res.status} on ${path}`);
   return res.json() as Promise<T>;
@@ -131,6 +134,7 @@ function fromMock(m: MockTitle): TitleDetail {
     status: m.status,
     tagline: null,
     seasonList: m.type === "series" ? mockSeasons(m) : null,
+    lastEpisode: m.type === "series" ? mockLastEpisode(mockSeasons(m)) : null,
     voteAverage: votes?.[0] ?? null,
     voteCount: votes?.[1] ?? null,
     collectionId: m.type === "movie" ? (MOCK_COLLECTIONS.find((c) => c.parts.includes(m.id))?.id ?? null) : null,
@@ -162,6 +166,19 @@ function mockSeasons(m: MockTitle): SeasonInfo[] {
     });
   }
   return list;
+}
+
+/** Last aired episode of the sample seasons: one airing today, or the end of the last released season. */
+function mockLastEpisode(seasons: SeasonInfo[]): EpisodeRef | null {
+  const s = [...seasons].reverse().find((x) => x.aired > 0);
+  if (!s) return null;
+  const airing = s.state === "airing";
+  return {
+    season: s.number,
+    episode: s.aired,
+    name: `Episódio ${s.aired}`,
+    airDate: airing ? new Date().toISOString().slice(0, 10) : `${s.year ?? 2000}-06-01`,
+  };
 }
 
 type TmdbResult = {
@@ -241,7 +258,7 @@ type TmdbTvDetail = {
   vote_count?: number;
 };
 
-type TmdbEpisodeRef = { season_number: number; episode_number: number; air_date: string | null };
+type TmdbEpisodeRef = { season_number: number; episode_number: number; air_date: string | null; name?: string };
 
 /**
  * A season counts as released once its last episode has aired: it is before
@@ -304,7 +321,8 @@ function pickRating(byCountry: { country: string; rating: string }[]) {
   return null;
 }
 
-export async function getTitle(type: ContentType, id: number): Promise<TitleDetail | null> {
+/** `fresh` skips the 12 h cache (the daily episode check). */
+export async function getTitle(type: ContentType, id: number, fresh = false): Promise<TitleDetail | null> {
   if (!Number.isInteger(id) || id <= 0) return null;
   if (!tmdbConfigured()) {
     const m = findMock(type, id);
@@ -312,7 +330,7 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
   }
   try {
     if (type === "movie") {
-      const d = await tmdb<TmdbMovieDetail>(`/movie/${id}`, { append_to_response: "release_dates,credits" });
+      const d = await tmdb<TmdbMovieDetail>(`/movie/${id}`, { append_to_response: "release_dates,credits" }, fresh);
       return {
         type,
         id: d.id,
@@ -337,13 +355,14 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
         ),
         status: d.status,
         seasonList: null,
+        lastEpisode: null,
         voteAverage: d.vote_average ?? null,
         voteCount: d.vote_count ?? null,
         collectionId: d.belongs_to_collection?.id ?? null,
         makers: [...new Set((d.credits?.crew ?? []).filter((c) => c.job === "Director").map((c) => c.name))],
       };
     }
-    const d = await tmdb<TmdbTvDetail>(`/tv/${id}`, { append_to_response: "content_ratings" });
+    const d = await tmdb<TmdbTvDetail>(`/tv/${id}`, { append_to_response: "content_ratings" }, fresh);
     return {
       type,
       id: d.id,
@@ -365,6 +384,14 @@ export async function getTitle(type: ContentType, id: number): Promise<TitleDeta
       ),
       status: d.status,
       seasonList: parseSeasons(d),
+      lastEpisode: d.last_episode_to_air
+        ? {
+            season: d.last_episode_to_air.season_number,
+            episode: d.last_episode_to_air.episode_number,
+            name: d.last_episode_to_air.name || null,
+            airDate: d.last_episode_to_air.air_date,
+          }
+        : null,
       voteAverage: d.vote_average ?? null,
       voteCount: d.vote_count ?? null,
       collectionId: null,

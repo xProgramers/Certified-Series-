@@ -130,23 +130,27 @@ export function formatYears(a: number | null, b: number | null) {
 }
 
 /**
- * Where a series stands against its released seasons. A series is only
- * finished (and its card in colour) while every released season is marked;
- * seasons still airing or announced never count.
+ * Where a series stands against its seasons. A series is only finished (and
+ * its card in colour) while every released season is marked and no season is
+ * airing: from a new season's first episode the card goes back to black &
+ * white. An airing season can only be marked once its last episode is out.
  *   watched null = an entry from before season tracking: a completed one
  *   counts as having every released season.
  */
 export function seasonProgress(list: SeasonInfo[] | null | undefined, watched: number[] | null | undefined, rated: boolean) {
   const released = (list ?? []).filter((s) => s.state === "released").map((s) => s.number);
+  const airing = (list ?? []).filter((s) => s.state === "airing").map((s) => s.number);
   const marked = watched ?? (rated ? released : []);
   const missing = released.filter((n) => !marked.includes(n));
   const lastMarked = Math.max(0, ...marked);
   return {
     released,
+    /** Seasons with episodes coming out right now. */
+    airing,
     watched: marked,
     missing,
-    done: missing.length === 0,
+    done: missing.length === 0 && airing.length === 0,
     // A season after everything the user had marked: something new came out
-    newSeason: rated && missing.some((n) => n > lastMarked),
+    newSeason: rated && [...missing, ...airing].some((n) => n > lastMarked),
   };
 }
