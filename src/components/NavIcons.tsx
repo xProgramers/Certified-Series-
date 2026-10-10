@@ -55,3 +55,18 @@ export function GearIcon({ className = "h-4 w-4" }: IconProps) {
     </svg>
   );
 }
+
+export function BellIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} aria-hidden>
+      <path
+        d="M5 13.5V9a5 5 0 0110 0v4.5l1.3 1.6a.4.4 0 01-.3.6H4a.4.4 0 01-.3-.6L5 13.5z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M8.2 17.6a2 2 0 003.6 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
-import { GearIcon, HomeIcon, SearchIcon } from "./NavIcons";
+import { unreadNotifications } from "@/lib/notifications";
+import { BellIcon, GearIcon, HomeIcon, SearchIcon } from "./NavIcons";
 import { Wordmark } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -10,6 +11,7 @@ const pill = "whitespace-nowrap rounded-full bg-paper px-4 py-2 text-ink-0 trans
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
+  const unread = user ? await unreadNotifications(user.id).catch(() => 0) : 0;
   return (
     // The Android app draws under the status bar; safe-top pads it (globals.css)
     <header className="safe-top sticky top-0 z-40 bg-ink-0/80 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
@@ -39,6 +41,19 @@ export async function SiteHeader() {
               <span className="hidden lg:contents">
                 <ThemeToggle />
               </span>
+              <Link
+                href="/notificacoes"
+                aria-label={unread ? `Notificações, ${unread} novas` : "Notificações"}
+                title="Notificações"
+                className={`relative ${navLink}`}
+              >
+                <BellIcon className="h-5 w-5 md:h-[17px] md:w-[17px]" />
+                {unread > 0 && (
+                  <span className="absolute right-0.5 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 font-mono text-[9px] leading-none text-ink-0">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </Link>
               <Link href="/configuracoes" aria-label="Configurações" title="Configurações" className={navLink}>
                 <GearIcon className="h-5 w-5 md:h-[17px] md:w-[17px]" />
               </Link>

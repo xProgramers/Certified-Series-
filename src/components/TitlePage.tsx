@@ -33,6 +33,7 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
     pendingSeasons && entry?.seasonList
       ? entry.seasonList.filter((s) => s.state === "released" && !entry.watchedSeasons?.includes(s.number)).map((s) => s.number)
       : [];
+  const airingSeason = pendingSeasons ? (entry?.seasonList?.find((s) => s.state === "airing") ?? null) : null;
   const nextNumber = user ? await nextCollectionNumber(user.id) : 1;
 
   const backdrop = backdropUrl(title.backdropPath, "w1280");
@@ -131,7 +132,7 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
                 </>
               ) : pendingSeasons ? (
                 <a href="#seasons" className="text-sm text-mute underline-offset-4 hover:text-paper hover:underline">
-                  <span className="text-gold">✦</span> {seasonLabel(missingSeasons, entry.newSeason)}
+                  <span className="text-gold">✦</span> {seasonLabel(missingSeasons, entry.newSeason, airingSeason?.number)}
                 </a>
               ) : entry.status === "in_progress" ? (
                 <CompleteButton work={work} owner={owner} entry={entry} nextNumber={nextNumber} viewingNumber={entry.viewingNumber} />
@@ -159,7 +160,9 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
                 {pendingSeasons ? (
                   <>
                     <p className="mt-5 max-w-md font-serif text-3xl italic leading-snug text-paper/90">
-                      {entry.newSeason
+                      {airingSeason && missingSeasons.length === 0
+                        ? `A temporada ${airingSeason.number} está saindo. O card fica em preto e branco até o último episódio sair e você marcar que terminou.`
+                        : entry.newSeason
                         ? "Saiu temporada nova. O card voltou ao preto e branco até você marcar que terminou."
                         : "O card voltou ao preto e branco até todas as temporadas estarem marcadas."}
                     </p>
@@ -228,7 +231,8 @@ export async function TitlePage({ type, id }: { type: ContentType; id: number })
   );
 }
 
-function seasonLabel(missing: number[], isNew?: boolean) {
+function seasonLabel(missing: number[], isNew?: boolean, airing?: number) {
+  if (missing.length === 0 && airing) return `Temporada ${airing} em exibição · marque quando sair o último episódio`;
   const nums = missing.join(", ").replace(/, (\d+)$/, " e $1");
   if (isNew) return `${missing.length > 1 ? `Novas temporadas ${nums}` : `Nova temporada ${nums}`} · marque quando terminar`;
   return missing.length > 1 ? `Falta marcar as temporadas ${nums}` : `Falta marcar a temporada ${nums}`;

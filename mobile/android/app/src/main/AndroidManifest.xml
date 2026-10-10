@@ -38,6 +38,14 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
+
+        <!-- Push (Firebase Cloud Messaging): status bar icon and accent of new-episode notifications -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
     </application>
 
     <!-- Permissions -->
@@ -46,4 +54,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Advertising ID for AdMob (also merged in by play-services-ads; declared here for the Data safety form) -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    <!-- Android 13+: asked once in the app, for new-episode notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
