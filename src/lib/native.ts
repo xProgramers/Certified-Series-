@@ -16,7 +16,22 @@ type NativePlugins = {
   };
   SystemBars?: { setStyle(opts: { style: "DARK" | "LIGHT" }): Promise<void> };
   Share?: { share(opts: { title?: string; text?: string; url?: string; dialogTitle?: string }): Promise<unknown> };
+  /** @capacitor/push-notifications: only in app builds that ship it (older installs lack it). */
+  PushNotifications?: {
+    checkPermissions(): Promise<{ receive: PermissionState }>;
+    requestPermissions(): Promise<{ receive: PermissionState }>;
+    register(): Promise<void>;
+    addListener(event: "registration", cb: (t: { value: string }) => void): Promise<Listener>;
+    addListener(event: "registrationError", cb: (e: unknown) => void): Promise<Listener>;
+    addListener(
+      event: "pushNotificationActionPerformed",
+      cb: (a: { notification: { data?: { url?: string } } }) => void,
+    ): Promise<Listener>;
+    addListener(event: "pushNotificationReceived", cb: () => void): Promise<Listener>;
+  };
 };
+
+type PermissionState = "prompt" | "prompt-with-rationale" | "granted" | "denied";
 
 type CapacitorGlobal = { isNativePlatform?: () => boolean; Plugins?: NativePlugins };
 

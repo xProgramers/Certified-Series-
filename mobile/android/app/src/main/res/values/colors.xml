@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Accent of notification icons (the site's gold) -->
+    <color name="notification_accent">#C9B07A</color>
+</resources>

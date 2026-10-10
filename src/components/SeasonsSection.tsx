@@ -71,9 +71,9 @@ export function SeasonsSection({
           </>
         ) : (
           <>
-            O card só ganha cor quando todas as temporadas lançadas estiverem marcadas. Se sair uma temporada nova, ele volta
+            O card só ganha cor quando todas as temporadas lançadas estiverem marcadas. Quando sai o primeiro episódio de uma temporada nova, ele volta
             ao preto e branco e sobe para o começo da coleção.
-            {waiting.length > 0 && " Temporadas ainda em exibição contam quando o último episódio sair."}
+            {waiting.length > 0 && " Uma temporada em exibição pode ser marcada quando o último episódio sair."}
           </>
         )}
       </p>

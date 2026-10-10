@@ -36,6 +36,11 @@ export default function PrivacyPage() {
             do aparelho, endereço IP e dados de uso para exibir e medir anúncios. Você escolhe se aceita anúncios
             personalizados na primeira abertura do app e pode mudar isso nas configurações do Android.
           </li>
+          <li>
+            <strong>Notificações (só no aplicativo Android)</strong>: se você permitir, guardamos um código do aparelho
+            (token do Firebase) para avisar quando sai episódio novo de uma série da sua coleção. Ao sair da conta, o
+            aparelho deixa de receber avisos. Você pode desligar as notificações nas configurações do Android.
+          </li>
         </ul>
         <p>Não pedimos localização, contatos, câmera, microfone nem arquivos do seu aparelho.</p>
       </Section>
@@ -45,6 +50,7 @@ export default function PrivacyPage() {
           <li>Criar e manter sua conta e sua coleção.</li>
           <li>Mostrar seu perfil público em /u/seu-usuario, com os cards que você não marcou como privados.</li>
           <li>Calcular conquistas e estatísticas da coleção.</li>
+          <li>Avisar sobre episódios e temporadas novas das séries da sua coleção.</li>
           <li>Exibir anúncios no aplicativo Android, que mantêm o app gratuito.</li>
           <li>Proteger o serviço contra abuso e responder a pedidos que você nos enviar.</li>
         </ul>
@@ -67,6 +73,10 @@ export default function PrivacyPage() {
           <li>
             <strong>TMDB</strong> (The Movie Database), de onde vêm títulos, pôsteres, elenco e onde assistir. Enviamos ao
             TMDB apenas o que você busca, nunca dados da sua conta.
+          </li>
+          <li>
+            <strong>Firebase Cloud Messaging</strong> (Google), que entrega as notificações ao aplicativo Android. Recebe
+            só o token do aparelho e o texto do aviso.
           </li>
           <li>
             <strong>Google AdMob</strong>, no aplicativo Android, conforme a{" "}

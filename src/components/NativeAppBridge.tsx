@@ -1,6 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { savePushToken } from "@/app/actions/notifications";
 import { nativePlugins } from "@/lib/native";
 
 /**
@@ -8,9 +10,41 @@ import { nativePlugins } from "@/lib/native";
  * - Back button closes an open modal, then walks back through the app's
  *   history, and only at the first page sends the app to the background.
  * - Status bar icons follow the site theme (light icons on dark, dark on light).
+ * - Push (when signed in and the server has Firebase set up): asks once for
+ *   permission, sends this device's token to the account, and a tapped
+ *   notification opens the series page. A new notice refreshes the bell.
  * Links to other sites already open in the system browser (Capacitor default).
  */
-export function NativeAppBridge() {
+export function NativeAppBridge({ push = false }: { push?: boolean }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const p = nativePlugins()?.PushNotifications;
+    if (!push || !p) return;
+    const handles: Promise<{ remove(): unknown }>[] = [];
+    handles.push(p.addListener("registration", ({ value }) => void savePushToken(value).catch(() => {})));
+    handles.push(
+      p.addListener("pushNotificationActionPerformed", ({ notification }) => {
+        const url = notification.data?.url;
+        if (url?.startsWith("/")) router.push(url);
+      }),
+    );
+    handles.push(p.addListener("pushNotificationReceived", () => router.refresh()));
+
+    (async () => {
+      let { receive } = await p.checkPermissions();
+      if (receive === "prompt" || receive === "prompt-with-rationale") {
+        // Android 13+ shows the system dialog; ask only once, the settings page can't re-ask anyway
+        if (localStorage.getItem("push-asked")) return;
+        localStorage.setItem("push-asked", "1");
+        receive = (await p.requestPermissions()).receive;
+      }
+      if (receive === "granted") await p.register();
+    })().catch(() => {});
+
+    return () => handles.forEach((h) => void h.then((x) => x.remove()));
+  }, [push, router]);
+
   useEffect(() => {
     const p = nativePlugins();
     if (!p) return;

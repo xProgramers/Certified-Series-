@@ -40,6 +40,13 @@ jobs:
       - run: npm ci
       - run: npx cap sync android
 
+      # Firebase config for push notifications; without it the app builds and simply gets no push
+      - name: Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        if: env.GOOGLE_SERVICES_JSON != ''
+        run: printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+
       - name: Upload keystore
         id: keystore
         env:
