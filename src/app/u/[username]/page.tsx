@@ -63,7 +63,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             {(held.length > 0 || isOwner) && (
               <Link
                 href={`/u/${user.username}/conquistas`}
-                className="group mt-5 inline-flex items-center gap-3 text-sm text-mute transition-colors hover:text-paper"
+                className="group mt-5 inline-flex max-w-full flex-wrap items-center gap-3 text-sm text-mute transition-colors hover:text-paper"
               >
                 {topSeals.length > 0 && <MedalRow keys={topSeals} />}
                 <span>

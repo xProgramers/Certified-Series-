@@ -33,7 +33,7 @@ export function initials(name: string) {
 }
 
 export function PeopleGrid({ children }: { children: React.ReactNode }) {
-  return <ul className="mt-10 grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-6 sm:gap-x-6">{children}</ul>;
+  return <ul className="mt-10 grid grid-cols-3 gap-x-3 gap-y-8 sm:grid-cols-6 sm:gap-x-6">{children}</ul>;
 }
 
 /** Round photo, name and character; the whole tile opens the person's page. */
@@ -59,7 +59,7 @@ export function PersonTile({ person }: { person: Person }) {
             </span>
           )}
         </div>
-        <p className="mt-3 font-serif text-lg leading-tight transition-colors group-hover:text-hi">{person.name}</p>
+        <p className="mt-3 font-serif text-lg leading-tight [overflow-wrap:anywhere] transition-colors group-hover:text-hi">{person.name}</p>
         {sub && <p className="mt-1 font-mono text-[10px] uppercase leading-snug tracking-[0.14em] text-dim">{sub}</p>}
       </Link>
     </li>

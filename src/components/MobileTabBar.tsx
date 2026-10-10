@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { CollectionIcon, HomeIcon, MedalIcon, SearchIcon } from "./NavIcons";
 
 /**
- * Phone navigation for signed-in users: the four places the app is about,
- * always one tap away. Hidden from sm up, where the header has room for them.
+ * Phone (and small tablet) navigation for signed-in users: the four places the app is about,
+ * always one tap away. Hidden from md up, where the header has room for them.
  */
 export function MobileTabBar({ username }: { username: string }) {
   const path = usePathname();
@@ -21,10 +21,10 @@ export function MobileTabBar({ username }: { username: string }) {
   return (
     <>
       {/* Keeps the footer clear of the bar */}
-      <div aria-hidden className="h-[calc(4rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] sm:hidden" />
+      <div aria-hidden className="h-[calc(4rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] md:hidden" />
       <nav
         aria-label="Navegação do app"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink-0/95 pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px))] backdrop-blur-xl sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink-0/95 pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:hidden"
       >
         <ul className="grid h-16 grid-cols-4">
           {tabs.map(({ href, label, Icon, active }) => (

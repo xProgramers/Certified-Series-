@@ -23,7 +23,7 @@ export function ThemePicker() {
   const choice = useSyncExternalStore<Choice | null>(subscribe, () => storedTheme() ?? "system", () => null);
 
   return (
-    <div role="radiogroup" aria-label="Tema" className="grid grid-cols-3 items-start gap-3">
+    <div role="radiogroup" aria-label="Tema" className="grid grid-cols-3 items-start gap-2.5 sm:gap-3">
       {OPTIONS.map(({ value, label, note }) => {
         const on = choice === value;
         return (
@@ -33,7 +33,7 @@ export function ThemePicker() {
             role="radio"
             aria-checked={on}
             onClick={() => chooseTheme(value)}
-            className="group flex flex-col text-left"
+            className="group flex min-w-0 flex-col text-left"
           >
             <span
               className={`relative block aspect-[4/3] overflow-hidden rounded-xl border transition-all duration-300 ${
@@ -61,7 +61,7 @@ export function ThemePicker() {
                 </span>
               )}
             </span>
-            <span className={`mt-2.5 block text-sm ${on ? "text-paper" : "text-mute"}`}>{label}</span>
+            <span className={`mt-2.5 block text-[13px] [overflow-wrap:anywhere] sm:text-sm ${on ? "text-paper" : "text-mute"}`}>{label}</span>
             <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-dim">{note}</span>
           </button>
         );
