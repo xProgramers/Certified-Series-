@@ -6,42 +6,43 @@ import { Wordmark } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
 const navLink = "px-2 py-2 text-mute transition-colors hover:text-paper";
+const pill = "whitespace-nowrap rounded-full bg-paper px-4 py-2 text-ink-0 transition-colors hover:bg-hi";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
   return (
     // The Android app draws under the status bar; safe-top pads it (globals.css)
     <header className="safe-top sticky top-0 z-40 bg-ink-0/80 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
-      <div className={`mx-auto flex max-w-[1440px] ${user ? "h-12 sm:h-16" : "h-16"} items-center justify-between gap-4 px-4 sm:px-8`}>
+      <div className={`mx-auto flex max-w-[1440px] ${user ? "h-12 md:h-16" : "h-16"} items-center justify-between gap-4 px-4 sm:px-8`}>
         <Link href="/" aria-label="Certified Series — início" className="shrink-0">
           <Wordmark compact={!!user} />
         </Link>
         <nav aria-label="Principal" className="flex items-center gap-1 text-sm sm:gap-3">
           {user ? (
             <>
-              {/* On phones these live in the bottom tab bar (MobileTabBar) */}
-              <Link href="/" className={`hidden items-center gap-2 sm:flex ${navLink}`}>
+              {/* Phones and small tablets: these live in the bottom tab bar (MobileTabBar) */}
+              <Link href="/" aria-label="Início" className={`hidden items-center gap-2 md:flex ${navLink}`}>
                 <HomeIcon className="h-4 w-4" />
-                Início
+                <span className="hidden lg:inline">Início</span>
               </Link>
-              <Link href={`/u/${user.username}`} className={`hidden sm:inline ${navLink}`}>
+              <Link href={`/u/${user.username}`} className={`hidden md:inline ${navLink}`}>
                 Coleção
               </Link>
-              <Link href={`/u/${user.username}/conquistas`} className={`hidden sm:inline ${navLink}`}>
+              <Link href={`/u/${user.username}/conquistas`} className={`hidden md:inline ${navLink}`}>
                 Conquistas
               </Link>
-              <Link href="/search" className={`hidden items-center gap-2 sm:flex ${navLink}`}>
+              <Link href="/search" aria-label="Buscar" className={`hidden items-center gap-2 md:flex ${navLink}`}>
                 <SearchIcon />
-                Buscar
+                <span className="hidden lg:inline">Buscar</span>
               </Link>
-              {/* Phones: theme and sign-out live in Configurações, behind the gear */}
-              <span className="hidden sm:contents">
+              {/* Below lg, theme and sign-out live in Configurações, behind the gear */}
+              <span className="hidden lg:contents">
                 <ThemeToggle />
               </span>
               <Link href="/configuracoes" aria-label="Configurações" title="Configurações" className={navLink}>
-                <GearIcon className="h-5 w-5 sm:h-[17px] sm:w-[17px]" />
+                <GearIcon className="h-5 w-5 md:h-[17px] md:w-[17px]" />
               </Link>
-              <form action={logout} className="hidden sm:block">
+              <form action={logout} className="hidden lg:block">
                 <button className="px-2 py-2 text-dim transition-colors hover:text-paper" type="submit">
                   Sair
                 </button>
@@ -53,13 +54,15 @@ export async function SiteHeader() {
                 <SearchIcon className="h-5 w-5 sm:h-4 sm:w-4" />
               </Link>
               <ThemeToggle />
-              <Link href="/login" className={`whitespace-nowrap ${navLink}`}>
+              {/* Phones: one "Entrar" pill so it never runs off the screen, even with large system fonts.
+                  Signing up is on the landing page and behind "Entrar" (the login form links to it). */}
+              <Link href="/login" className={`${pill} ml-1 sm:hidden`}>
                 Entrar
               </Link>
-              <Link
-                href="/signup"
-                className="whitespace-nowrap rounded-full bg-paper px-4 py-2 text-ink-0 transition-colors hover:bg-hi"
-              >
+              <Link href="/login" className={`hidden whitespace-nowrap sm:inline ${navLink}`}>
+                Entrar
+              </Link>
+              <Link href="/signup" className={`hidden sm:inline ${pill}`}>
                 Criar conta
               </Link>
             </>

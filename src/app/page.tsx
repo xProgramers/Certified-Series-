@@ -21,18 +21,18 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   return (
     <div className="overflow-x-clip">
-      <section className="mx-auto max-w-[1440px] px-4 pb-14 pt-16 sm:px-8 sm:pt-24 lg:pt-28">
+      <section className="mx-auto max-w-[1440px] px-4 pb-14 pt-10 sm:px-8 sm:pt-24 lg:pt-28">
         <div className="max-w-3xl rise">
-          <h1 className="font-serif text-[clamp(3rem,7vw,6rem)] leading-[0.9] tracking-[-0.025em]">
+          <h1 className="font-serif text-[clamp(2.75rem,7vw,6rem)] leading-[0.9] tracking-[-0.025em]">
             Seu repertório,
             <br />
             <em className="text-mute">em cartaz.</em>
           </h1>
-          <p className="mt-7 max-w-lg text-lg leading-relaxed text-mute">
+          <p className="mt-5 max-w-lg text-base leading-relaxed text-mute sm:mt-7 sm:text-lg">
             Séries e filmes viram cards. Adicione o que está assistindo, termine, dê sua nota e escreva o que ficou. A
             obra ganha cor e entra para a sua coleção.
           </p>
-          <div className="mt-9 flex flex-wrap items-center gap-6">
+          <div className="mt-7 flex flex-wrap items-center gap-3 sm:mt-9 sm:gap-6">
             <Link
               href="/signup"
               className="rounded-full bg-paper px-6 py-3.5 text-sm font-medium text-ink-0 transition-colors hover:bg-hi"
