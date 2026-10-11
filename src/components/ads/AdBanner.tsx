@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ADS, isNativeApp, showBottomBanner } from "@/lib/admob";
+import { ADS, bottomChrome, isNativeApp, showBottomBanner } from "@/lib/admob";
 
 /**
  * Marks the end of a page. Once the reader scrolls here, the app shows an
@@ -52,18 +52,27 @@ export function AdBanner() {
 }
 
 function BannerPreview() {
+  // Measured after mount, like the native banner's margin
+  const [bottom, setBottom] = useState<number | null>(null);
   useEffect(() => {
     const root = document.documentElement;
+    const margin = bottomChrome();
     root.style.setProperty("--ad-inset", "56px");
+    root.style.setProperty("--ad-bottom", `${56 + margin}px`);
+    const id = requestAnimationFrame(() => setBottom(margin));
     return () => {
+      cancelAnimationFrame(id);
       root.style.removeProperty("--ad-inset");
+      root.style.removeProperty("--ad-bottom");
     };
   }, []);
+  if (bottom === null) return null;
   return (
     <div
       role="complementary"
       aria-label="Anúncio"
-      className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-center justify-center border-t border-line bg-ink-2"
+      style={{ bottom }}
+      className="fixed inset-x-0 z-40 flex h-14 items-center justify-center border-t border-line bg-ink-2"
     >
       <span className="font-mono text-[10px] tracking-[0.25em] text-dim">ANÚNCIO DE TESTE</span>
     </div>

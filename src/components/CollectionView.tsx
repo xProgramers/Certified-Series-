@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { byMostRecent, formatCollectionNumber, type CardData, type ContentType } from "@/lib/card-types";
 import { ContentCard } from "./card/ContentCard";
 import { CardLightbox } from "./CardLightbox";
+import { CollectionList } from "./CollectionList";
 
 type Sort = "recent" | "rating" | "number";
 type TypeFilter = "all" | ContentType;
 type StatusFilter = "all" | "in_progress" | "completed" | "fav";
+type ViewMode = "cards" | "list";
+
+const VIEW_KEY = "collection-view";
 
 const TYPE_TABS: [TypeFilter, string][] = [
   ["all", "Todos"],
@@ -42,6 +46,8 @@ export function CollectionView({
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<Sort>("recent");
   const [open, setOpen] = useState<CardData | null>(null);
+  // Remembered on this device; the server always renders cards
+  const view = useSyncExternalStore(subscribeView, storedView, () => "cards" as ViewMode);
 
   // Server data changed (router.refresh) → adopt it
   const [prevInitial, setPrevInitial] = useState(initial);
@@ -86,6 +92,8 @@ export function CollectionView({
     .filter((s) => s.list.length > 0);
   const nextNumber = Math.max(0, ...cards.map((c) => c.collectionNumber)) + 1;
   let index = 0;
+  // Where each section starts in the stagger, for the list view
+  const firstOf = sections.map((_, i) => sections.slice(0, i).reduce((n, sec) => n + sec.list.length, 0));
 
   return (
     <section aria-label="Coleção">
@@ -98,7 +106,7 @@ export function CollectionView({
           ))}
         </div>
         <div className="flex items-center justify-between gap-4">
-          <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:px-0" role="group" aria-label="Filtrar">
+          <div className="no-scrollbar -ml-4 flex min-w-0 gap-1.5 overflow-x-auto pl-4 sm:mx-0 sm:px-0" role="group" aria-label="Filtrar">
             {STATUS_TABS.map(([key, label]) => (
               <button
                 key={key}
@@ -113,7 +121,7 @@ export function CollectionView({
               </button>
             ))}
           </div>
-          <label className="hidden shrink-0 items-center gap-2 text-sm text-dim sm:flex">
+          <label className="ml-auto hidden shrink-0 items-center gap-2 text-sm text-dim sm:flex">
             <span className="sr-only">Ordem</span>
             <select
               value={sort}
@@ -125,6 +133,7 @@ export function CollectionView({
               <option value="number">Ordem da coleção</option>
             </select>
           </label>
+          <ViewSwitch view={view} onChange={pickView} />
         </div>
       </div>
 
@@ -132,7 +141,7 @@ export function CollectionView({
         <p className="py-24 text-center font-serif text-2xl italic text-mute">{emptyLine(status, type)}</p>
       ) : (
         <div className="space-y-20 sm:space-y-28">
-          {sections.map((sec) => (
+          {sections.map((sec, si) => (
             <section key={sec.type} aria-labelledby={`sec-${sec.type}`}>
               <header className="binder-head mb-8 sm:mb-10">
                 <h2 id={`sec-${sec.type}`} className="font-serif text-[clamp(2rem,4vw,2.75rem)] leading-none tracking-tight">
@@ -145,50 +154,68 @@ export function CollectionView({
                     : `${sec.list.length} de ${sec.total}`}
                 </p>
               </header>
-              <ul className="card-grid">
-                {sec.list.map((c) => {
-                  const i = index++;
-                  return (
-                    <li
-                      key={c.entryId}
-                      id={`card-${c.entryId}`}
-                      className={`${c.entryId === highlight ? "sc-reveal" : "rise"}`}
-                      style={c.entryId === highlight ? undefined : { animationDelay: `${Math.min(i * 50, 600)}ms` }}
+              {view === "list" ? (
+                <>
+                  <CollectionList cards={sec.list} firstIndex={firstOf[si]} highlight={highlight} onOpen={setOpen} />
+                  {isOwner && status !== "fav" && (
+                    <Link
+                      href={`/search?tipo=${sec.type === "movie" ? "filmes" : "series"}`}
+                      className="mt-4 flex items-center gap-3 px-1 py-2 text-sm text-mute transition-colors hover:text-paper"
                     >
-                      <button
-                        type="button"
-                        onClick={() => setOpen(c)}
-                        onPointerMove={tilt}
-                        onPointerLeave={untilt}
-                        className="sc-interactive block w-full text-left"
-                        aria-label={`Abrir card de ${c.title}`}
-                      >
-                        <span className="card-tilt">
-                          <ContentCard card={c} priority={i < 4} />
-                        </span>
-                      </button>
-                      {c.newSeason && (
-                        <p className="mt-2.5 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-gold">
-                          ✦ Nova temporada
-                        </p>
-                      )}
-                    </li>
-                  );
-                })}
-                {isOwner && status !== "fav" && (
-                  <li className="rise" style={{ animationDelay: `${Math.min(index * 50, 600)}ms` }}>
-                    <Link href={`/search?tipo=${sec.type === "movie" ? "filmes" : "series"}`} className="empty-slot">
-                      <span className="empty-slot-plus" aria-hidden>
+                      <span className="grid h-7 w-7 place-items-center rounded-full border border-dashed border-line-strong" aria-hidden>
                         +
                       </span>
-                      <span className="mt-3 text-sm text-mute">{sec.type === "movie" ? "Adicionar filme" : "Adicionar série"}</span>
-                      <span className="mt-1 font-mono text-[10px] tracking-[0.3em] text-dim">
-                        N° {formatCollectionNumber(nextNumber)}
-                      </span>
+                      {sec.type === "movie" ? "Adicionar filme" : "Adicionar série"}
+                      <span className="font-mono text-[10px] tracking-[0.3em] text-dim">N° {formatCollectionNumber(nextNumber)}</span>
                     </Link>
-                  </li>
-                )}
-              </ul>
+                  )}
+                </>
+              ) : (
+                <ul className="card-grid">
+                  {sec.list.map((c) => {
+                    const i = index++;
+                    return (
+                      <li
+                        key={c.entryId}
+                        id={`card-${c.entryId}`}
+                        className={`${c.entryId === highlight ? "sc-reveal" : "rise"}`}
+                        style={c.entryId === highlight ? undefined : { animationDelay: `${Math.min(i * 50, 600)}ms` }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setOpen(c)}
+                          onPointerMove={tilt}
+                          onPointerLeave={untilt}
+                          className="sc-interactive block w-full text-left"
+                          aria-label={`Abrir card de ${c.title}`}
+                        >
+                          <span className="card-tilt">
+                            <ContentCard card={c} priority={i < 4} />
+                          </span>
+                        </button>
+                        {c.newSeason && (
+                          <p className="mt-2.5 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-gold">
+                            ✦ Nova temporada
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                  {isOwner && status !== "fav" && (
+                    <li className="rise" style={{ animationDelay: `${Math.min(index * 50, 600)}ms` }}>
+                      <Link href={`/search?tipo=${sec.type === "movie" ? "filmes" : "series"}`} className="empty-slot">
+                        <span className="empty-slot-plus" aria-hidden>
+                          +
+                        </span>
+                        <span className="mt-3 text-sm text-mute">{sec.type === "movie" ? "Adicionar filme" : "Adicionar série"}</span>
+                        <span className="mt-1 font-mono text-[10px] tracking-[0.3em] text-dim">
+                          N° {formatCollectionNumber(nextNumber)}
+                        </span>
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              )}
             </section>
           ))}
         </div>
@@ -202,6 +229,53 @@ export function CollectionView({
         onDelete={(id) => setCards((cs) => cs.filter((c) => c.entryId !== id))}
       />
     </section>
+  );
+}
+
+const VIEW_EVENT = "cs-collection-view";
+// Fallback when storage is blocked: the switch still works for this visit
+let viewInMemory: ViewMode = "cards";
+
+function storedView(): ViewMode {
+  try {
+    const v = localStorage.getItem(VIEW_KEY);
+    return v === "list" || v === "cards" ? v : viewInMemory;
+  } catch {
+    return viewInMemory;
+  }
+}
+
+function subscribeView(onChange: () => void) {
+  window.addEventListener(VIEW_EVENT, onChange);
+  return () => window.removeEventListener(VIEW_EVENT, onChange);
+}
+
+function pickView(v: ViewMode) {
+  viewInMemory = v;
+  try {
+    localStorage.setItem(VIEW_KEY, v);
+  } catch {}
+  window.dispatchEvent(new Event(VIEW_EVENT));
+}
+
+function ViewSwitch({ view, onChange }: { view: ViewMode; onChange: (v: ViewMode) => void }) {
+  return (
+    <div className="view-switch shrink-0" role="group" aria-label="Modo de exibição">
+      <button type="button" aria-pressed={view === "cards"} onClick={() => onChange("cards")} aria-label="Ver em cards" title="Cards">
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>
+          <rect x="1.75" y="1.75" width="5.25" height="7.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          <rect x="9" y="1.75" width="5.25" height="7.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M1.75 12.5h5.25M9 12.5h5.25M1.75 14.5h3.5M9 14.5h3.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity=".6" />
+        </svg>
+      </button>
+      <button type="button" aria-pressed={view === "list"} onClick={() => onChange("list")} aria-label="Ver em lista" title="Lista">
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>
+          <rect x="1.5" y="2" width="3" height="4.5" rx=".6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+          <rect x="1.5" y="9.5" width="3" height="4.5" rx=".6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M6.75 3.25h7.5M6.75 5.5h4.5M6.75 10.75h7.5M6.75 13h4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      </button>
+    </div>
   );
 }
 

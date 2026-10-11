@@ -3,7 +3,12 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { AdsBoot } from "@/components/ads/AdsBoot";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CompletionRevealHost } from "@/components/CompletionReveal";
+import { MobileTabBar } from "@/components/MobileTabBar";
+import { NativeAppBridge } from "@/components/NativeAppBridge";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getCurrentUser } from "@/lib/auth";
+import { pushConfigured } from "@/lib/push";
+import { SITE_URL } from "@/lib/site";
 import { THEME_BG, themeScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -17,17 +22,22 @@ const instrument = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: "Certified Series — seu repertório, em cartaz", template: "%s · Certified Series" },
   description: "Cada série que você termina vira um card na sua coleção pessoal.",
   applicationName: "Certified Series",
   appleWebApp: { capable: true, title: "Certified", statusBarStyle: "black-translucent" },
+  openGraph: { siteName: "Certified Series", locale: "pt_BR", type: "website" },
 };
 
 export const viewport: Viewport = {
   themeColor: THEME_BG.dark,
+  // Edge to edge in the Android app and on notched iPhones; globals.css pads with the safe areas
+  viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const user = await getCurrentUser();
   return (
     // data-theme is set by the inline script before paint, hence suppressHydrationWarning
     <html
@@ -38,7 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="grain min-h-full flex flex-col">
+      <body className="grain safe-x min-h-full flex flex-col">
         <a
           href="#conteudo"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-paper focus:px-4 focus:py-2 focus:text-ink-0"
@@ -50,8 +60,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        {user && <MobileTabBar username={user.username} />}
         <CompletionRevealHost />
         <AdsBoot />
+        <NativeAppBridge push={!!user && pushConfigured()} />
       </body>
     </html>
   );

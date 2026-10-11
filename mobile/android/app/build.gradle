@@ -1,0 +1,74 @@
+apply plugin: 'com.android.application'
+
+// Values from -Pname=value, ~/.gradle/gradle.properties or environment variables (CI)
+def setting = { String prop, String env, String fallback = null ->
+    project.findProperty(prop) ?: System.getenv(env) ?: fallback
+}
+
+// Google's sample AdMob app ID: test ads only. https://developers.google.com/admob/android/test-ads
+def admobAppId = setting('admobAppId', 'ADMOB_APP_ID', 'ca-app-pub-3940256099942544~3347511713')
+def releaseKeystore = setting('releaseStoreFile', 'ANDROID_KEYSTORE_FILE')
+
+android {
+    namespace = "com.certifiedseries.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.certifiedseries.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // Every Play upload needs a higher versionCode; CI passes the run number
+        versionCode Integer.parseInt(setting('versionCode', 'ANDROID_VERSION_CODE', '1'))
+        versionName setting('versionName', 'ANDROID_VERSION_NAME', '1.0.0')
+        manifestPlaceholders = [admobAppId: admobAppId]
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (releaseKeystore) {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword setting('releaseStorePassword', 'ANDROID_KEYSTORE_PASSWORD')
+                keyAlias setting('releaseKeyAlias', 'ANDROID_KEY_ALIAS')
+                keyPassword setting('releaseKeyPassword', 'ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // Unsigned when no upload keystore is configured
+            if (releaseKeystore) signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.activity:activity:$androidxActivityVersion"
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

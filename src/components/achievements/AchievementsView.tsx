@@ -98,7 +98,7 @@ function TileButton({ tile, onOpen }: { tile: Tile; onOpen: () => void }) {
       <span className={`relative block w-[min(100%,168px)] ${earned ? "" : "opacity-70"}`}>
         <MedalStage achievement={tile.key} locked={!earned} spin={false} />
         {tile.instances.length > 1 && (
-          <span className="absolute -right-1 top-1 rounded-full border border-line-strong bg-ink-1/90 px-2 py-0.5 font-mono text-[11px] text-paper backdrop-blur">
+          <span className="absolute right-0 top-1 rounded-full border border-line-strong bg-ink-1/90 px-2 py-0.5 font-mono text-[11px] text-paper backdrop-blur">
             ×{tile.instances.length}
           </span>
         )}

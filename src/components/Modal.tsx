@@ -45,7 +45,7 @@ export function Modal({
         const t = e.target as HTMLElement;
         if (t === ref.current || t.hasAttribute("data-backdrop")) onClose();
       }}
-      className={`m-0 h-[calc(100dvh-var(--ad-inset,0px))] max-h-none w-screen max-w-none bg-transparent p-0 text-paper backdrop:bg-ink-0/90 backdrop:backdrop-blur-md open:fade-in ${className}`}
+      className={`m-0 h-[calc(100dvh-var(--ad-bottom,0px))] max-h-none w-screen max-w-none bg-transparent p-0 text-paper backdrop:bg-ink-0/90 backdrop:backdrop-blur-md open:fade-in ${className}`}
     >
       {open && children}
     </dialog>
@@ -58,6 +58,7 @@ export function CloseButton({ onClick, className = "" }: { onClick: () => void; 
       type="button"
       onClick={onClick}
       aria-label="Fechar"
+      style={{ marginTop: "var(--safe-top)" }}
       className={`grid h-10 w-10 place-items-center rounded-full border border-line-strong bg-ink-0/60 text-mute backdrop-blur transition-colors hover:text-paper ${className}`}
     >
       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>

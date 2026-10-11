@@ -8,12 +8,14 @@ export function LogoMark({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-export function Wordmark() {
+/** `compact`: the mark alone on phones, where the tab bar already says where you are.
+ *  Otherwise the name still steps aside on the narrowest phones so the header buttons fit. */
+export function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
-      <LogoMark className="h-5 w-5 text-gold" />
-      <span className="font-serif text-[1.35rem] leading-none tracking-tight">
-        Certified<span className="hidden italic text-mute min-[400px]:inline"> Series</span>
+      <LogoMark className={compact ? "h-6 w-6 text-gold md:h-5 md:w-5" : "h-5 w-5 text-gold"} />
+      <span className={`font-serif text-[1.35rem] leading-none tracking-tight ${compact ? "hidden md:inline" : "hidden min-[360px]:inline"}`}>
+        Certified<span className="hidden italic text-mute sm:inline"> Series</span>
       </span>
     </span>
   );

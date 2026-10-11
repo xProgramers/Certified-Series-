@@ -42,6 +42,7 @@ export function SeasonChecklist({
   }
 
   const released = seasons.filter((s) => s.state === "released").map((s) => s.number);
+  const airing = seasons.some((s) => s.state === "airing");
   const allMarked = released.length > 0 && released.every((n) => watched.includes(n));
 
   const save = (next: number[]) => {
@@ -55,7 +56,8 @@ export function SeasonChecklist({
         return setError(res.error);
       }
       const marked = res.data.watchedSeasons ?? next;
-      onSaved?.(res.data, released.every((n) => marked.includes(n)));
+      // A season on air keeps the series unfinished until its last episode
+      onSaved?.(res.data, !airing && released.every((n) => marked.includes(n)));
       router.refresh();
     });
   };

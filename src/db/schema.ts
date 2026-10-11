@@ -56,6 +56,15 @@ export type SeasonInfo = {
   state: "released" | "airing" | "upcoming";
 };
 
+/** An aired episode of a series, as TMDB reports its latest one. */
+export type EpisodeRef = {
+  season: number;
+  episode: number;
+  name: string | null;
+  /** YYYY-MM-DD */
+  airDate: string | null;
+};
+
 export type EntryStatus = "in_progress" | "completed";
 export type CertificationStatus = "certified" | "not_certified";
 
@@ -95,6 +104,11 @@ export const titles = sqliteTable(
     seasonList: text("season_list", { mode: "json" }).$type<SeasonInfo[] | null>(),
     /** When seasonList was last fetched from TMDB. */
     seasonsCheckedAt: integer("seasons_checked_at", { mode: "timestamp_ms" }),
+    /**
+     * The latest episode the daily check has already notified about. Only the
+     * check moves it, so an episode is announced once; null until its first run.
+     */
+    notifiedEpisode: text("notified_episode", { mode: "json" }).$type<EpisodeRef | null>(),
     /** Movies only: the TMDB collection (franchise) the film belongs to. */
     collectionId: integer("collection_id"),
     /**
@@ -227,6 +241,52 @@ export const userAchievements = sqliteTable(
   ],
 );
 
+export type NotificationKind = "episode" | "season";
+
+/**
+ * A notice for someone who has the series in their collection: a new episode,
+ * or a new season premiering. One per user per episode (the unique index),
+ * so re-running the daily check never repeats one.
+ */
+export const notifications = sqliteTable(
+  "notifications",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<NotificationKind>().notNull(),
+    contentType: text("content_type").$type<ContentType>().notNull(),
+    contentId: integer("content_id").notNull(),
+    season: integer("season").notNull(),
+    episode: integer("episode").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    url: text("url").notNull(),
+    readAt: integer("read_at", { mode: "timestamp_ms" }),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [
+    uniqueIndex("notifications_once_idx").on(t.userId, t.contentType, t.contentId, t.season, t.episode),
+    index("notifications_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+/** Firebase Cloud Messaging tokens of the Android app, one per installed device. */
+export const pushTokens = sqliteTable(
+  "push_tokens",
+  {
+    token: text("token").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull().default("android"),
+    ...timestamps,
+  },
+  (t) => [index("push_tokens_user_idx").on(t.userId)],
+);
+
+export type Notification = typeof notifications.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Title = typeof titles.$inferSelect;
 export type WatchEntry = typeof watchEntries.$inferSelect;

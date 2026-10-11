@@ -2,10 +2,12 @@
 
 import bcrypt from "bcryptjs";
 import { eq, or } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { createSession, destroySession } from "@/lib/auth";
+import { PUSH_COOKIE } from "@/lib/notifications";
 
 export type AuthState = { error?: string; fields?: Record<string, string> } | undefined;
 
@@ -76,11 +78,18 @@ export async function login(_: AuthState, form: FormData): Promise<AuthState> {
   if (!user || !ok) return { error: "Usuário ou senha incorretos.", fields };
 
   await createSession(user.id);
-  const next = typeof raw.next === "string" && raw.next.startsWith("/") && !raw.next.startsWith("//") ? raw.next : `/u/${user.username}`;
+  const next = typeof raw.next === "string" && raw.next.startsWith("/") && !raw.next.startsWith("//") ? raw.next : "/";
   redirect(next);
 }
 
 export async function logout() {
+  // This device stops getting the account's push notifications
+  const jar = await cookies();
+  const pushToken = jar.get(PUSH_COOKIE)?.value;
+  if (pushToken) {
+    await db.delete(schema.pushTokens).where(eq(schema.pushTokens.token, pushToken));
+    jar.delete(PUSH_COOKIE);
+  }
   await destroySession();
   redirect("/");
 }

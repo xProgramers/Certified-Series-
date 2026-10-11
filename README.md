@@ -95,16 +95,15 @@ AdMob é um SDK nativo: não roda no navegador. O app Android (casca Capacitor q
 No navegador nada disso aparece.
 
 - **Consentimento (UMP):** a cada abertura do app o Google diz se precisa pedir consentimento; se sim, mostra o formulário dele
-  e guarda a resposta no aparelho. Só depois disso o SDK inicia e pede anúncios. O botão **Privacidade dos anúncios**, no rodapé,
+  e guarda a resposta no aparelho. Só depois disso o SDK inicia e pede anúncios. O botão **Privacidade dos anúncios**, em Configurações e no rodapé,
   reabre o formulário (aparece só no app, quando o Google exige).
-- **Banner:** no fim da página de coleção (`/u/…`), preso embaixo da tela até sair da página. A altura dele vira
-  `--ad-inset`, usado como espaço extra no fim da página e nos modais.
+- **Banner:** no fim da página de coleção (`/u/…`), preso embaixo da tela (logo acima da barra de abas) até sair da página.
+  A altura dele vira `--ad-inset` (espaço extra no fim da página) e `--ad-bottom` (onde os modais terminam).
 - **IDs:** sem `NEXT_PUBLIC_ADMOB_BANNER_ID`, o app usa o banner de teste do Google e simula estar na Europa para o formulário de
   consentimento sempre aparecer. Com o ID real, tudo passa a valer de verdade.
 - **app-ads.txt:** `/app-ads.txt` é gerado a partir de `ADMOB_PUBLISHER_ID` (404 enquanto não estiver definido).
 - **Prévia no navegador:** `NEXT_PUBLIC_ADS_PREVIEW=1` mostra um bloco "Anúncio de teste" onde o banner ficaria.
-- **No projeto Android:** o App ID (`ca-app-pub-…~…`) vai no `AndroidManifest.xml`, em
-  `com.google.android.gms.ads.APPLICATION_ID` (teste: `ca-app-pub-3940256099942544~3347511713`).
+- **No projeto Android:** o App ID (`ca-app-pub-…~…`) vem de `ADMOB_APP_ID` no build (veja `mobile/README.md`).
 
 ## Deploy (Vercel + Turso)
 

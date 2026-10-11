@@ -1,39 +1,63 @@
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
+import { unreadNotifications } from "@/lib/notifications";
+import { BellIcon, GearIcon, HomeIcon, SearchIcon } from "./NavIcons";
 import { Wordmark } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
+const navLink = "px-2 py-2 text-mute transition-colors hover:text-paper";
+const pill = "whitespace-nowrap rounded-full bg-paper px-4 py-2 text-ink-0 transition-colors hover:bg-hi";
+
 export async function SiteHeader() {
   const user = await getCurrentUser();
+  const unread = user ? await unreadNotifications(user.id).catch(() => 0) : 0;
   return (
-    <header className="sticky top-0 z-40 bg-ink-0/80 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-8">
-        <Link href={user ? `/u/${user.username}` : "/"} aria-label="Certified Series — início" className="shrink-0">
-          <Wordmark />
+    // The Android app draws under the status bar; safe-top pads it (globals.css)
+    <header className="safe-top sticky top-0 z-40 bg-ink-0/80 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-0/60">
+      <div className={`mx-auto flex max-w-[1440px] ${user ? "h-12 md:h-16" : "h-16"} items-center justify-between gap-4 px-4 sm:px-8`}>
+        <Link href="/" aria-label="Certified Series — início" className="shrink-0">
+          <Wordmark compact={!!user} />
         </Link>
         <nav aria-label="Principal" className="flex items-center gap-1 text-sm sm:gap-3">
           {user ? (
             <>
-              <Link href={`/u/${user.username}`} className="px-2 py-2 text-mute transition-colors hover:text-paper">
+              {/* Phones and small tablets: these live in the bottom tab bar (MobileTabBar) */}
+              <Link href="/" aria-label="Início" className={`hidden items-center gap-2 md:flex ${navLink}`}>
+                <HomeIcon className="h-4 w-4" />
+                <span className="hidden lg:inline">Início</span>
+              </Link>
+              <Link href={`/u/${user.username}`} className={`hidden md:inline ${navLink}`}>
                 Coleção
               </Link>
-              <Link
-                href={`/u/${user.username}/conquistas`}
-                className="hidden px-2 py-2 text-mute transition-colors hover:text-paper sm:inline"
-              >
+              <Link href={`/u/${user.username}/conquistas`} className={`hidden md:inline ${navLink}`}>
                 Conquistas
               </Link>
-              <Link
-                href="/search"
-                aria-label="Buscar e adicionar"
-                className="flex items-center gap-2 px-2 py-2 text-mute transition-colors hover:text-paper"
-              >
+              <Link href="/search" aria-label="Buscar" className={`hidden items-center gap-2 md:flex ${navLink}`}>
                 <SearchIcon />
-                <span className="hidden sm:inline">Buscar</span>
+                <span className="hidden lg:inline">Buscar</span>
               </Link>
-              <ThemeToggle />
-              <form action={logout}>
+              {/* Below lg, theme and sign-out live in Configurações, behind the gear */}
+              <span className="hidden lg:contents">
+                <ThemeToggle />
+              </span>
+              <Link
+                href="/notificacoes"
+                aria-label={unread ? `Notificações, ${unread} novas` : "Notificações"}
+                title="Notificações"
+                className={`relative ${navLink}`}
+              >
+                <BellIcon className="h-5 w-5 md:h-[17px] md:w-[17px]" />
+                {unread > 0 && (
+                  <span className="absolute right-0.5 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-gold px-1 font-mono text-[9px] leading-none text-ink-0">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </Link>
+              <Link href="/configuracoes" aria-label="Configurações" title="Configurações" className={navLink}>
+                <GearIcon className="h-5 w-5 md:h-[17px] md:w-[17px]" />
+              </Link>
+              <form action={logout} className="hidden lg:block">
                 <button className="px-2 py-2 text-dim transition-colors hover:text-paper" type="submit">
                   Sair
                 </button>
@@ -41,32 +65,25 @@ export async function SiteHeader() {
             </>
           ) : (
             <>
-              <Link href="/search" aria-label="Buscar" className="px-2 py-2 text-mute transition-colors hover:text-paper">
-                <SearchIcon />
+              <Link href="/search" aria-label="Buscar" className={navLink}>
+                <SearchIcon className="h-5 w-5 sm:h-4 sm:w-4" />
               </Link>
               <ThemeToggle />
-              <Link href="/login" className="whitespace-nowrap px-2 py-2 text-mute transition-colors hover:text-paper">
+              {/* Phones: one "Entrar" pill so it never runs off the screen, even with large system fonts.
+                  Signing up is on the landing page and behind "Entrar" (the login form links to it). */}
+              <Link href="/login" className={`${pill} ml-1 sm:hidden`}>
                 Entrar
               </Link>
-              <Link
-                href="/signup"
-                className="whitespace-nowrap rounded-full bg-paper px-4 py-2 text-ink-0 transition-colors hover:bg-hi"
-              >
-                Criar coleção
+              <Link href="/login" className={`hidden whitespace-nowrap sm:inline ${navLink}`}>
+                Entrar
+              </Link>
+              <Link href="/signup" className={`hidden sm:inline ${pill}`}>
+                Criar conta
               </Link>
             </>
           )}
         </nav>
       </div>
     </header>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden>
-      <circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M13.2 13.2L17 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
   );
 }

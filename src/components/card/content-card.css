@@ -460,11 +460,3 @@
   }
 }
 
-/* Export: no outer shadow (it would be clipped), no hover/reveal state */
-.sc-export .sc {
-  box-shadow: none;
-}
-.sc-export .sc-sheen,
-.sc-export-story .sc-sheen {
-  display: none;
-}

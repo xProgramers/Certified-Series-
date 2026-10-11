@@ -1,16 +1,16 @@
 /**
- * AdMob, through the Capacitor bridge of the Android app.
+ * AdMob, through the Capacitor bridge of the Android app (see src/lib/native.ts).
  *
- * AdMob is a native SDK: it never runs in a browser. The Android app is a
- * Capacitor shell that loads this site, and `@capacitor-community/admob`
- * (installed in that shell) exposes itself as `window.Capacitor.Plugins.AdMob`.
- * This module only talks to that object, so the site needs no Capacitor
- * dependency and everything here is a no-op on the web.
+ * AdMob is a native SDK: it never runs in a browser. `@capacitor-community/admob`
+ * ships in the shell (mobile/) and shows up as `Capacitor.Plugins.AdMob`, so
+ * everything here is a no-op on the web.
  *
  * Flow on each app launch (Google's recommended order): ask UMP for the
  * consent status, show the consent form when it's required, then start the
  * SDK and request ads only if UMP says we can.
  */
+
+import { nativePlugins } from "./native";
 
 // Google's sample IDs: always serve test ads, safe to click.
 // https://developers.google.com/admob/android/test-ads
@@ -49,19 +49,11 @@ type AdMobPlugin = {
   addListener(event: "bannerAdSizeChanged", cb: (size: { width: number; height: number }) => void): Promise<{ remove(): void }>;
 };
 
-type CapacitorGlobal = {
-  isNativePlatform?: () => boolean;
-  Plugins?: { AdMob?: AdMobPlugin };
-};
-
 /** UMP's debug geography value for "pretend this device is in the EEA". */
 const DEBUG_GEOGRAPHY_EEA = 1;
 
 function plugin(): AdMobPlugin | null {
-  if (typeof window === "undefined") return null;
-  const cap = (window as { Capacitor?: CapacitorGlobal }).Capacitor;
-  if (!cap?.isNativePlatform?.()) return null;
-  return cap.Plugins?.AdMob ?? null;
+  return (nativePlugins() as { AdMob?: AdMobPlugin } | null)?.AdMob ?? null;
 }
 
 export type AdsState = {
@@ -117,8 +109,10 @@ export async function openAdPrivacyOptions(): Promise<AdsState> {
 }
 
 /**
- * Native banners float over the WebView at the bottom of the screen; the page
- * gets the same height as bottom padding (--ad-inset) so nothing hides under it.
+ * Native banners float over the WebView at the bottom of the screen, lifted
+ * above the app's tab bar (or the system navigation bar when there's none).
+ * The page gets the banner's height as bottom padding (--ad-inset) and modals
+ * stop above it (--ad-bottom), so nothing hides under it.
  * Returns a cleanup that removes the banner.
  */
 export async function showBottomBanner(): Promise<() => void> {
@@ -127,21 +121,37 @@ export async function showBottomBanner(): Promise<() => void> {
   if (!admob || !canRequestAds) return () => {};
 
   const root = document.documentElement;
+  const margin = bottomChrome();
   const sub = await admob.addListener("bannerAdSizeChanged", ({ height }) => {
     root.style.setProperty("--ad-inset", `${height}px`);
+    root.style.setProperty("--ad-bottom", `${height + margin}px`);
   });
   await admob.showBanner({
     adId: ADS.bannerId,
     adSize: "ADAPTIVE_BANNER",
     position: "BOTTOM_CENTER",
-    margin: 0,
+    margin,
     isTesting: ADS.testing,
   });
   return () => {
     sub.remove();
     root.style.removeProperty("--ad-inset");
+    root.style.removeProperty("--ad-bottom");
     admob.removeBanner().catch(() => {});
   };
+}
+
+/** Height (CSS px) of what's fixed at the bottom of the screen: the tab bar, else the system navigation bar. */
+export function bottomChrome(): number {
+  const tabs = document.querySelector<HTMLElement>("[data-tab-bar]");
+  if (tabs && tabs.offsetHeight > 0) return tabs.offsetHeight;
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;visibility:hidden;height:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px))";
+  document.body.appendChild(probe);
+  const h = probe.offsetHeight;
+  probe.remove();
+  return h;
 }
 
 export function isNativeApp(): boolean {

@@ -8,7 +8,7 @@ import { openAdPrivacyOptions, startAds } from "@/lib/admob";
  * this entry point wherever the consent form applies; it only appears in the
  * Android app and only when UMP says it's needed.
  */
-export function AdPrivacyLink({ className }: { className?: string }) {
+export function AdPrivacyLink({ className, children }: { className?: string; children?: React.ReactNode }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -31,6 +31,7 @@ export function AdPrivacyLink({ className }: { className?: string }) {
       }
     >
       Privacidade dos anúncios
+      {children}
     </button>
   );
 }

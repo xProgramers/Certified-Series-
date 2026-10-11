@@ -14,7 +14,7 @@ import {
   type CardData,
 } from "@/lib/card-types";
 import { ContentCard } from "./card/ContentCard";
-import { useCardExport, type ExportFormat } from "./card/CardExport";
+import { ShareButton } from "./card/ShareButton";
 import { CompleteFlow } from "./CompleteDialog";
 import { EntryFields, todayISO, type EntryValues } from "./EntryForm";
 import { CloseButton, Modal } from "./Modal";
@@ -58,7 +58,6 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const { exportCard, busy, stage } = useCardExport();
 
   const preview: CardData = mode === "edit" ? { ...card, ...values, completedAt: values.completedAt + "T12:00:00.000Z" } : card;
   const inProgress = card.status === "in_progress";
@@ -100,16 +99,6 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
     });
   };
 
-  const doExport = async (f: ExportFormat) => {
-    setError(null);
-    try {
-      await exportCard(card, f);
-      setNotice(f === "story" ? "Imagem para Stories salva." : "Card salvo como PNG.");
-    } catch {
-      setError("Não foi possível gerar a imagem. Tente novamente.");
-    }
-  };
-
   if (mode === "complete") {
     return (
       <CompleteFlow
@@ -126,7 +115,8 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
   return (
     <div data-backdrop className="flex min-h-dvh items-start justify-center overflow-y-auto px-4 py-16 sm:items-center sm:px-8">
       <CloseButton onClick={onClose} className="fixed right-4 top-4 z-10 sm:right-6 sm:top-6" />
-      <div className="grid w-full max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-14">
+      {/* Taps on the empty space around the card close it too (Modal checks data-backdrop) */}
+      <div data-backdrop className="grid w-full max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-14">
         <div className="mx-auto w-full max-w-[min(420px,78vw)] rise">
           <ContentCard card={preview} posterSize="w780" priority />
         </div>
@@ -183,7 +173,10 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
                     )}
                     {pendingSeasons ? (
                       <p className="text-sm text-dim">
-                        Sua nota {formatRating(card.rating ?? 0)} continua guardada. Com todas as temporadas marcadas, o card volta a ter cor.
+                        Sua nota {formatRating(card.rating ?? 0)} continua guardada.{" "}
+                        {seasons.some((s) => s.state === "airing")
+                          ? "Há uma temporada em exibição: quando o último episódio sair e você marcar, o card volta a ter cor."
+                          : "Com todas as temporadas marcadas, o card volta a ter cor."}
                       </p>
                     ) : (
                       <>
@@ -200,16 +193,11 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
                   </div>
                 )
               ) : (
-                <div className="mt-10 space-y-3">
-                  <p className="eyebrow">Compartilhar</p>
-                  <div className="flex flex-wrap gap-2">
-                    <ActionButton primary onClick={() => doExport("card")} disabled={!!busy}>
-                      {busy === "card" ? "Gerando…" : "Salvar card (PNG)"}
-                    </ActionButton>
-                    <ActionButton onClick={() => doExport("story")} disabled={!!busy}>
-                      {busy === "story" ? "Gerando…" : "Imagem para Stories"}
-                    </ActionButton>
-                  </div>
+                <div className="mt-10">
+                  <ShareButton card={card} />
+                  {isOwner && !card.isPublic && (
+                    <p className="text-sm text-dim">Card privado: quem abrir o link vê só a obra, sem sua nota.</p>
+                  )}
                 </div>
               )}
 
@@ -257,9 +245,19 @@ function LightboxBody({ card: initial, isOwner, onClose, onChange, onDelete, ini
             {error && <p className="text-danger">{error}</p>}
             {!error && notice && <p className="text-mute">{notice}</p>}
           </div>
+          {/* Phones: a plain way back at the end of the details, within thumb reach */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-line-strong py-3 text-sm text-mute transition-colors hover:text-paper md:hidden"
+          >
+            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>
+              <path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Voltar
+          </button>
         </div>
       </div>
-      {stage}
     </div>
   );
 }
