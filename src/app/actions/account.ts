@@ -31,6 +31,8 @@ export async function deleteAccount(_: DeleteAccountState, form: FormData): Prom
     db.delete(schema.favorites).where(eq(schema.favorites.userId, user.id)),
     db.delete(schema.userAchievements).where(eq(schema.userAchievements.userId, user.id)),
     db.delete(schema.watchEntries).where(eq(schema.watchEntries.userId, user.id)),
+    db.delete(schema.notifications).where(eq(schema.notifications.userId, user.id)),
+    db.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, user.id)),
     db.delete(schema.users).where(eq(schema.users.id, user.id)),
   ]);
   await destroySession();
