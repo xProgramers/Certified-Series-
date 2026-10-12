@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdPrivacyLink } from "@/components/ads/AdPrivacyLink";
 import { getCurrentUser } from "@/lib/auth";
 
 const link = "transition-colors hover:text-paper";
@@ -20,6 +21,7 @@ export async function SiteFooter() {
               Excluir conta
             </Link>
           )}
+          <AdPrivacyLink className={link} />
         </nav>
         {/* Attribution required by the TMDB API terms of use */}
         <p className="max-w-md leading-relaxed sm:text-right">

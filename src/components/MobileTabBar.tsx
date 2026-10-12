@@ -24,6 +24,7 @@ export function MobileTabBar({ username }: { username: string }) {
       <div aria-hidden className="h-[calc(4rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] md:hidden" />
       <nav
         aria-label="Navegação do app"
+        data-tab-bar
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink-0/95 pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:hidden"
       >
         <ul className="grid h-16 grid-cols-4">

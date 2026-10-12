@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { AdsBoot } from "@/components/ads/AdsBoot";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CompletionRevealHost } from "@/components/CompletionReveal";
 import { MobileTabBar } from "@/components/MobileTabBar";
@@ -61,6 +62,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SiteFooter />
         {user && <MobileTabBar username={user.username} />}
         <CompletionRevealHost />
+        <AdsBoot />
         <NativeAppBridge push={!!user && pushConfigured()} />
       </body>
     </html>

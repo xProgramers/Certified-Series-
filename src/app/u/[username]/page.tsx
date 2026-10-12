@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MedalRow } from "@/components/achievements/AchievementsView";
+import { AdBanner } from "@/components/ads/AdBanner";
 import { CollectionView } from "@/components/CollectionView";
 import { byPrestige } from "@/lib/achievements";
 import { getUserAchievements, syncAchievements } from "@/lib/achievements-data";
@@ -102,6 +103,8 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             </a>
           </p>
         )}
+
+        <AdBanner />
       </div>
     </div>
   );

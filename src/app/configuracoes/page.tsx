@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import { ThemePicker } from "@/components/ThemePicker";
+import { AdPrivacyLink } from "@/components/ads/AdPrivacyLink";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Configurações" };
@@ -80,6 +81,10 @@ export default async function SettingsPage() {
             Política de privacidade
             <Chevron />
           </Link>
+          {/* Only in the Android app, where Google's consent form applies */}
+          <AdPrivacyLink className={`${row} w-full text-left`}>
+            <Chevron />
+          </AdPrivacyLink>
           <Link href="/termos" className={row}>
             Termos de uso
             <Chevron />
