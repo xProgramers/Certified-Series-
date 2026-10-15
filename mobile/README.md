@@ -36,7 +36,7 @@ No GitHub, em **Settings → Secrets and variables → Actions**:
 
 | Nome | Tipo | O que é |
 | --- | --- | --- |
-| `ADMOB_APP_ID` | variável | ID do app no AdMob (`ca-app-pub-…~…`). Sem ele, o app usa o ID de teste do Google |
+| `ADMOB_APP_ID` | variável (opcional) | Substitui o ID do app no AdMob, que já fica em `app/build.gradle` |
 | `ANDROID_KEYSTORE_BASE64` | segredo | Chave de upload (`.jks`) em base64 |
 | `ANDROID_KEYSTORE_PASSWORD` | segredo | Senha do keystore |
 | `ANDROID_KEY_ALIAS` | segredo | Alias da chave |

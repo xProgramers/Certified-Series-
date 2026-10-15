@@ -5,8 +5,9 @@ def setting = { String prop, String env, String fallback = null ->
     project.findProperty(prop) ?: System.getenv(env) ?: fallback
 }
 
-// Google's sample AdMob app ID: test ads only. https://developers.google.com/admob/android/test-ads
-def admobAppId = setting('admobAppId', 'ADMOB_APP_ID', 'ca-app-pub-3940256099942544~3347511713')
+// Certified Series' AdMob app ID (public: it ships inside the APK). Override with
+// -PadmobAppId / ADMOB_APP_ID, e.g. Google's test app ca-app-pub-3940256099942544~3347511713.
+def admobAppId = setting('admobAppId', 'ADMOB_APP_ID', 'ca-app-pub-3887694594348421~7529048293')
 def releaseKeystore = setting('releaseStoreFile', 'ANDROID_KEYSTORE_FILE')
 
 android {

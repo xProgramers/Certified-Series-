@@ -34,7 +34,7 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- AdMob app ID: Google's test app until -PadmobAppId / ADMOB_APP_ID is set (app/build.gradle) -->
+        <!-- AdMob app ID: set in app/build.gradle (override with -PadmobAppId / ADMOB_APP_ID) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
