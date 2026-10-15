@@ -103,7 +103,7 @@ No navegador nada disso aparece.
   consentimento sempre aparecer. Com o ID real, tudo passa a valer de verdade.
 - **app-ads.txt:** `/app-ads.txt` é gerado a partir de `ADMOB_PUBLISHER_ID` (404 enquanto não estiver definido).
 - **Prévia no navegador:** `NEXT_PUBLIC_ADS_PREVIEW=1` mostra um bloco "Anúncio de teste" onde o banner ficaria.
-- **No projeto Android:** o App ID (`ca-app-pub-…~…`) vem de `ADMOB_APP_ID` no build (veja `mobile/README.md`).
+- **No projeto Android:** o App ID (`ca-app-pub-…~…`) fica em `mobile/android/app/build.gradle` e pode ser trocado por `ADMOB_APP_ID` no build (veja `mobile/README.md`).
 
 ## Deploy (Vercel + Turso)
 
