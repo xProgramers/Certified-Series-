@@ -63,7 +63,11 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleDebug bundleRelease
+        run: |
+          tasks="assembleDebug bundleRelease"
+          # Signed release APK: the same minified (R8) code as the Play bundle, to install and check
+          if [ -n "$ANDROID_KEYSTORE_FILE" ]; then tasks="$tasks assembleRelease"; fi
+          ./gradlew --no-daemon $tasks
 
       - uses: actions/upload-artifact@v4
         with:
@@ -75,3 +79,9 @@ jobs:
         with:
           name: certified-series-play-aab
           path: mobile/android/app/build/outputs/bundle/release/*.aab
+
+      - uses: actions/upload-artifact@v4
+        if: steps.keystore.outputs.file != ''
+        with:
+          name: certified-series-apk-release
+          path: mobile/android/app/build/outputs/apk/release/*.apk

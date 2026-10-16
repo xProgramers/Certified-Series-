@@ -79,6 +79,7 @@ export async function CastPage({ type, id }: { type: ContentType; id: number }) 
                     {g.people.map((p) => (
                       <li key={p.id} className="flex items-baseline justify-between gap-3">
                         <Link
+                          prefetch={false}
                           href={personHref(p.id)}
                           className="font-serif text-xl leading-tight underline-offset-[5px] transition-colors hover:text-hi hover:underline"
                         >

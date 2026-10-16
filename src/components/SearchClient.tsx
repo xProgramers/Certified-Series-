@@ -192,7 +192,7 @@ function ResultGrid({
         const href = titleHref(s.type, s.id);
         return (
           <li key={k} className="rise" style={{ animationDelay: `${Math.min(i * 30, 360)}ms` }}>
-            <Link href={href} className="group block" aria-label={`${s.name} (${TYPE_LABEL[s.type].one})`}>
+            <Link prefetch={false} href={href} className="group block" aria-label={`${s.name} (${TYPE_LABEL[s.type].one})`}>
               <div className="relative aspect-[2/3] overflow-hidden rounded-md bg-ink-3">
                 {src ? (
                   // eslint-disable-next-line @next/next/no-img-element

@@ -15,6 +15,7 @@ export async function GET(req: Request, ctx: RouteContext<"/api/mock-poster/[id]
     headers: {
       "Content-Type": "image/svg+xml",
       "Cache-Control": "public, max-age=86400, immutable",
+      "CDN-Cache-Control": "public, max-age=86400, immutable",
     },
   });
 }
