@@ -20,7 +20,7 @@ e deixa os arquivos na aba **Actions → Android app → Artifacts**:
 
 - `certified-series-apk-teste`: APK de debug para instalar direto no celular
 - `certified-series-play-aab`: pacote para a Play Console, só quando a chave de upload estiver configurada
-- `certified-series-apk-release`: APK assinado com o mesmo código otimizado (R8) do pacote da Play, para conferir no celular antes de enviar
+- `certified-series-apk-release`: APK assinado igual ao pacote da Play, para conferir no celular antes de enviar
 
 Localmente (precisa do Android Studio / SDK):
 

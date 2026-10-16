@@ -41,11 +41,9 @@ android {
         release {
             // Unsigned when no upload keystore is configured
             if (releaseKeystore) signingConfig signingConfigs.release
-            // R8: shrink and obfuscate (Play flags bundles with little obfuscation).
-            // The mapping file ships inside the .aab, so Play deobfuscates crashes.
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // R8 stays off: the minified build opened on the offline page on a real phone.
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 }
