@@ -14,7 +14,8 @@ export async function GET(req: Request) {
       // The browser keeps a search for 10 minutes; the cache in front, for an hour
       headers: { "Cache-Control": "public, max-age=600", "CDN-Cache-Control": "public, max-age=3600" },
     });
-  } catch {
+  } catch (e) {
+    console.error("TMDB search failed", e);
     return Response.json({ results: [], error: "Não foi possível buscar agora." }, { status: 502 });
   }
 }
