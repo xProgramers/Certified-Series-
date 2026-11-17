@@ -106,7 +106,11 @@ async function tmdb<T>(path: string, params: Record<string, string> = {}, fresh 
     // The daily episode check needs today's data, not the 12 h cache
     ...(fresh ? { cache: "no-store" as const } : { next: { revalidate: 60 * 60 * 12 } }),
   });
-  if (!res.ok) throw new Error(`TMDB ${res.status} on ${path}`);
+  if (!res.ok) {
+    // Logged so a bad token or a blocked request shows up in the Worker logs
+    console.error("TMDB request failed", res.status, path, (await res.text()).slice(0, 200));
+    throw new Error(`TMDB ${res.status} on ${path}`);
+  }
   return res.json() as Promise<T>;
 }
 
