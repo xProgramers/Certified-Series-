@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 /**
  * Crawlers following title → cast → person → title links could walk all of
- * TMDB through our server-rendered pages and burn the Vercel plan limits.
+ * TMDB through our server-rendered pages and burn the hosting plan limits.
  * Profiles and shared cards stay open so link previews and search still work.
  */
 export default function robots(): MetadataRoute.Robots {

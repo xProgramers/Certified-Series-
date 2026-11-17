@@ -1,0 +1,11 @@
+# Copy to .dev.vars for `npm run cf:preview` (local Cloudflare runtime).
+# In production these go to the Worker as Secrets (Settings → Variables and Secrets).
+NEXTJS_ENV=development
+# The Worker can't open a local file: use your Turso URL, or `turso dev` (http://127.0.0.1:8080)
+DATABASE_URL=http://127.0.0.1:8080
+DATABASE_AUTH_TOKEN=
+AUTH_SECRET=change-me-to-a-long-random-string-of-at-least-32-chars
+TMDB_READ_TOKEN=
+CRON_SECRET=
+FIREBASE_SERVICE_ACCOUNT=
+ADMOB_PUBLISHER_ID=

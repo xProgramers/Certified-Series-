@@ -1,5 +1,5 @@
 /**
- * Applies ./drizzle migrations. Runs on every Vercel build (see vercel.json),
+ * Applies ./drizzle migrations. Runs before every Cloudflare deploy (`npm run cf:deploy`),
  * so a fresh Turso database gets its tables automatically.
  */
 import { createClient } from "@libsql/client";
@@ -11,10 +11,11 @@ import { dbAuthToken, dbUrl } from "../src/db/url";
 async function main() {
   const url = dbUrl();
   if (url.startsWith("file:")) {
-    if (process.env.VERCEL) {
+    // WORKERS_CI is set by Cloudflare's Git builds; CI by GitHub Actions and most others
+    if (process.env.WORKERS_CI || process.env.CI || process.env.VERCEL) {
       throw new Error(
-        "No database configured. Connect a Turso database to this Vercel project " +
-          "(Storage → Turso) or set DATABASE_URL and DATABASE_AUTH_TOKEN.",
+        "No database configured. Set DATABASE_URL and DATABASE_AUTH_TOKEN (Turso) " +
+          "as build variables in the Cloudflare Worker (Settings → Build → Variables and secrets).",
       );
     }
     mkdirSync("./data", { recursive: true });

@@ -105,13 +105,33 @@ No navegador nada disso aparece.
 - **Prévia no navegador:** `NEXT_PUBLIC_ADS_PREVIEW=1` mostra um bloco "Anúncio de teste" onde o banner ficaria.
 - **No projeto Android:** o App ID (`ca-app-pub-…~…`) fica em `mobile/android/app/build.gradle` e pode ser trocado por `ADMOB_APP_ID` no build (veja `mobile/README.md`).
 
-## Deploy (Vercel + Turso)
+## Deploy (Cloudflare Workers + Turso)
 
-1. Crie o banco: `turso db create certified-series` e um token **com acesso total**: `turso db tokens create certified-series`.
-2. Na Vercel, defina `DATABASE_URL` (libsql://…), `DATABASE_AUTH_TOKEN`, `AUTH_SECRET` e, quando tiver, `TMDB_READ_TOKEN`.
-   A integração Turso da Vercel também funciona: ela define `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN`, que o app lê como alternativa.
-3. O build (`vercel.json`) roda `npm run db:migrate` antes do `next build`, então as tabelas são criadas e atualizadas sozinhas.
-4. Opcional: `npm run db:seed` com essas variáveis cria a coleção demo.
+O site roda num Worker do Cloudflare, montado pelo [OpenNext](https://opennext.js.org/cloudflare) (`@opennextjs/cloudflare`).
+O banco continua no Turso.
+
+- `wrangler.jsonc`: nome do Worker, bindings (`ASSETS`, `IMAGES`, `WORKER_SELF_REFERENCE`) e o cron diário (12:00 UTC).
+- `worker.ts`: o Worker de verdade. Repassa as requisições ao site e, no cron, chama `/api/cron/episodes` em lotes
+  (o plano grátis só deixa 50 subrequisições por requisição).
+- `open-next.config.ts`: sem cache incremental (não precisa de R2).
+
+**Variáveis.** As `NEXT_PUBLIC_*` entram no código na hora do build; as outras são lidas em tempo de execução.
+
+| Onde | Variáveis |
+| --- | --- |
+| Build (Settings → Build → Variables and secrets) | `DATABASE_URL`, `DATABASE_AUTH_TOKEN` (para a migração), `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_ADMOB_BANNER_ID` |
+| Worker (Settings → Variables and Secrets) | `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `AUTH_SECRET`, `TMDB_READ_TOKEN`, `CRON_SECRET`, `FIREBASE_SERVICE_ACCOUNT`, `ADMOB_PUBLISHER_ID` |
+
+**Deploy pelo GitHub (Workers Builds).** Em Workers & Pages → Create → Import a repository, com:
+- Build command: `npm run db:migrate && npx opennextjs-cloudflare build`
+- Deploy command: `npx opennextjs-cloudflare deploy`
+
+Cada push na `main` publica. A migração roda antes do build, então as tabelas se atualizam sozinhas.
+
+**Deploy pela máquina:** `npx wrangler login` e depois `npm run cf:deploy` (com as variáveis de build no `.env.local`).
+
+**Testar no runtime do Cloudflare:** copie `.dev.vars.example` para `.dev.vars` e rode `npm run cf:preview`.
+O Worker não abre arquivo local, então use a URL do Turso ou `turso dev`.
 
 ## Próximos passos sugeridos
 

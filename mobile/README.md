@@ -58,7 +58,7 @@ O `versionCode` de cada build é o número da execução do workflow, então cad
 1. Em [console.firebase.google.com](https://console.firebase.google.com), crie um projeto e adicione um app Android com o pacote `com.certifiedseries.app`.
 2. Baixe o `google-services.json` e cole o conteúdo inteiro no segredo `GOOGLE_SERVICES_JSON` do GitHub. Gere um build novo do app.
 3. Em **Configurações do projeto → Contas de serviço → Gerar nova chave privada**, baixe o JSON da conta de serviço
-   e cole o conteúdo na variável `FIREBASE_SERVICE_ACCOUNT` do projeto na Vercel. É com ela que o site envia os avisos.
+   e cole o conteúdo no secret `FIREBASE_SERVICE_ACCOUNT` do Worker no Cloudflare. É com ela que o site envia os avisos.
 
 O site só pede permissão de notificação no app quando `FIREBASE_SERVICE_ACCOUNT` está configurada.
-A checagem de episódios roda uma vez por dia (Vercel Cron, `vercel.json`) e precisa da variável `CRON_SECRET` na Vercel.
+A checagem de episódios roda uma vez por dia (cron do Worker, `wrangler.jsonc`) e precisa do secret `CRON_SECRET` no Cloudflare.

@@ -14,6 +14,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Android app shell (Capacitor), not part of the site
     "mobile/**",
+    // Cloudflare build output (OpenNext, wrangler)
+    ".open-next/**",
+    ".wrangler/**",
+    "cloudflare-env.d.ts",
   ]),
 ]);
 

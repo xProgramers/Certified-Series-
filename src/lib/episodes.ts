@@ -44,21 +44,28 @@ export function describe(prev: EpisodeRef, cur: EpisodeRef) {
 }
 
 /**
- * The daily check (Vercel Cron → /api/cron/episodes). For every running series
+ * The daily check (Cloudflare cron → /api/cron/episodes). For every running series
  * someone has in their collection it reads TMDB fresh, stores the seasons (so
  * cards go back to black & white the day a new season starts) and, when the
  * latest aired episode moved past the one already announced, notifies every
  * user who has the series, in the bell and by push. A series seen for the first
  * time only records its latest episode, so nobody gets a backlog.
+ *
+ * It works in batches (`from`, `limit`) so each request stays within the
+ * Worker's subrequest limit; `next` is where the following batch starts, or
+ * null after the last one. Old notifications are cleared by the first batch.
  */
-export async function checkNewEpisodes() {
-  const series = await db
+export async function checkNewEpisodes(from = 0, limit = Infinity) {
+  const all = await db
     .selectDistinct({ id: titles.id, name: titles.name, notified: titles.notifiedEpisode })
     .from(titles)
     .innerJoin(watchEntries, and(eq(watchEntries.contentType, titles.type), eq(watchEntries.contentId, titles.id)))
-    .where(and(eq(titles.type, "series"), sql`coalesce(${titles.status}, '') not in ('Ended', 'Canceled')`));
+    .where(and(eq(titles.type, "series"), sql`coalesce(${titles.status}, '') not in ('Ended', 'Canceled')`))
+    .orderBy(titles.id);
+  const series = all.slice(from, from + limit);
+  const next = from + series.length < all.length ? from + series.length : null;
 
-  const report = { series: series.length, failed: 0, announced: 0, notifications: 0, pushed: 0 };
+  const report = { total: all.length, from, series: series.length, next, failed: 0, announced: 0, notifications: 0, pushed: 0 };
   const pushes: PushMessage[] = [];
 
   for (let i = 0; i < series.length; i += CONCURRENCY) {
@@ -88,7 +95,7 @@ export async function checkNewEpisodes() {
   }
 
   report.pushed = await sendPush(pushes).catch(() => 0);
-  await db.delete(notifications).where(lt(notifications.createdAt, new Date(Date.now() - KEEP_DAYS * 86_400_000)));
+  if (from === 0) await db.delete(notifications).where(lt(notifications.createdAt, new Date(Date.now() - KEEP_DAYS * 86_400_000)));
   return report;
 }
 
