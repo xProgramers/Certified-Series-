@@ -41,6 +41,7 @@ android {
         release {
             // Unsigned when no upload keystore is configured
             if (releaseKeystore) signingConfig signingConfigs.release
+            // R8 stays off: the minified build opened on the offline page on a real phone.
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

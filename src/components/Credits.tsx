@@ -42,7 +42,7 @@ export function PersonTile({ person }: { person: Person }) {
   const sub = [person.role, person.episodes ? `${person.episodes} ep.` : null].filter(Boolean).join(" · ");
   return (
     <li className="text-center">
-      <Link href={personHref(person.id)} className="group block rounded-lg">
+      <Link prefetch={false} href={personHref(person.id)} className="group block rounded-lg">
         <div className="relative mx-auto aspect-square w-full max-w-[140px] overflow-hidden rounded-full bg-ink-3 ring-1 ring-line transition-shadow duration-300 group-hover:ring-gold/60">
           {src ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -71,7 +71,7 @@ export function PeopleNames({ people }: { people: Person[] }) {
   return people.map((p, i) => (
     <span key={p.id}>
       {i > 0 && (i === people.length - 1 ? " e " : ", ")}
-      <Link href={personHref(p.id)} className="underline-offset-[6px] transition-colors hover:text-hi hover:underline">
+      <Link prefetch={false} href={personHref(p.id)} className="underline-offset-[6px] transition-colors hover:text-hi hover:underline">
         {p.name}
       </Link>
     </span>
@@ -152,7 +152,7 @@ export function PosterTile({
       {current ? (
         <div aria-current="page">{body}</div>
       ) : (
-        <Link href={titleHref(t.type, t.id)} className="group block">
+        <Link prefetch={false} href={titleHref(t.type, t.id)} className="group block">
           {body}
         </Link>
       )}

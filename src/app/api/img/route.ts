@@ -23,6 +23,9 @@ export async function GET(req: Request) {
     headers: {
       "Content-Type": upstream.headers.get("Content-Type") ?? "image/jpeg",
       "Cache-Control": "public, max-age=2592000, immutable",
+      // Without this Vercel's CDN doesn't keep the image, so every poster
+      // view ran this function again (and counted against the plan limits).
+      "CDN-Cache-Control": "public, max-age=2592000, immutable",
     },
   });
 }
