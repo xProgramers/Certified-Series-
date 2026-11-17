@@ -8,7 +8,13 @@ import { getFranchise, getTitle } from "./tmdb";
 const { titles, watchEntries, franchises, userAchievements } = schema;
 
 const FRANCHISE_TTL = 30 * 24 * 3600 * 1000;
-const FETCH_LIMIT = 20;
+/**
+ * A Worker on the free plan may make only 50 subrequests per request, and
+ * every TMDB call and every database query is one. Each refresh below costs
+ * two (TMDB + upsert), so a sync refreshes only a few titles and franchises;
+ * the rest follow on the next visits.
+ */
+const FETCH_LIMIT = 3;
 
 /**
  * Titles cached before achievements existed have no directors/creators or
@@ -107,22 +113,28 @@ export async function syncAchievements(userId: string): Promise<Earned[]> {
   const heldById = new Map(held.map((h) => [id(h), h]));
 
   const gone = held.filter((h) => !earnedIds.has(id(h)));
-  for (const h of gone) {
-    await db
+  const writes = gone.map((h) =>
+    db
       .delete(userAchievements)
-      .where(and(eq(userAchievements.userId, userId), eq(userAchievements.key, h.key), eq(userAchievements.scope, h.scope)));
-  }
+      .where(and(eq(userAchievements.userId, userId), eq(userAchievements.key, h.key), eq(userAchievements.scope, h.scope))),
+  );
   const fresh: Earned[] = [];
+  const upserts = [];
   for (const e of earned) {
     const h = heldById.get(id(e));
     if (h && h.entryId === e.entryId && h.label === e.label && h.earnedAt.getTime() === e.earnedAt) continue;
     if (!h) fresh.push(e);
     const values = { entryId: e.entryId, label: e.label, earnedAt: new Date(e.earnedAt) };
-    await db
-      .insert(userAchievements)
-      .values({ userId, key: e.key, scope: e.scope, ...values })
-      .onConflictDoUpdate({ target: [userAchievements.userId, userAchievements.key, userAchievements.scope], set: values });
+    upserts.push(
+      db
+        .insert(userAchievements)
+        .values({ userId, key: e.key, scope: e.scope, ...values })
+        .onConflictDoUpdate({ target: [userAchievements.userId, userAchievements.key, userAchievements.scope], set: values }),
+    );
   }
+  // All changes in one round trip: one subrequest, however many achievements moved
+  const all = [...writes, ...upserts];
+  if (all.length) await db.batch(all as [(typeof all)[number], ...(typeof all)[number][]]);
   return fresh;
 }
 
