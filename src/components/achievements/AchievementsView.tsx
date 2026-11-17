@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useState } from "react";
 import { ACHIEVEMENT_BY_KEY, TIER_LABEL, type AchievementKey } from "@/lib/achievements";
 import { formatCardDate } from "@/lib/card-types";

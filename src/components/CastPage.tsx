@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import type { ContentType } from "@/db/schema";
 import { formatYears, personHref, titleHref } from "@/lib/card-types";

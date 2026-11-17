@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 import { ContentCard } from "@/components/card/ContentCard";
 import { SearchClient } from "@/components/SearchClient";
 import { getCurrentUser, type SessionUser } from "@/lib/auth";

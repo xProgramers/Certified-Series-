@@ -12,7 +12,7 @@ import {
   HOUSE_PALETTE,
   type CardData,
 } from "@/lib/card-types";
-import { posterUrl, type ImageSize } from "@/lib/images";
+import { paletteUrl, posterUrl, type ImageSize } from "@/lib/images";
 import { ACHIEVEMENT_BY_KEY } from "@/lib/achievements";
 import { extractPalette } from "@/lib/palette";
 import { Medal } from "../achievements/Medal";
@@ -39,7 +39,7 @@ export function usePalette(card: CardData): CardPalette {
   const [palette, setPalette] = useState<CardPalette | null>(card.palette);
   useEffect(() => {
     if (card.palette) return;
-    const src = posterUrl(card.posterPath, "w185");
+    const src = paletteUrl(card.posterPath);
     if (!src) return;
     let alive = true;
     extractPalette(src)

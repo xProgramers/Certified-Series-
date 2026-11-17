@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 import type { ContentType } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { titleHref } from "@/lib/card-types";

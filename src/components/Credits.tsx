@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 import type { EntryStatus } from "@/db/schema";
 import { personHref, titleHref } from "@/lib/card-types";
 import { posterUrl, profileUrl } from "@/lib/images";

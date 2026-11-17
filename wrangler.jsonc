@@ -17,6 +17,10 @@
   "images": { "binding": "IMAGES" },
   // Daily new-episode check, 12:00 UTC (09:00 in Brasília), same as the old Vercel Cron
   "triggers": { "crons": ["0 12 * * *"] },
+  // Workers Caching: a response marked public (posters for the palette, search,
+  // streaming lookups, share images) is served from Cloudflare's cache without
+  // running the site again. Pages for signed-in users are private and never cached.
+  "cache": { "enabled": true },
   "observability": { "enabled": true },
   "placement": { "mode": "smart" }
 }
