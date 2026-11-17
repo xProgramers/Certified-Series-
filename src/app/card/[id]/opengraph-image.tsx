@@ -1,11 +1,9 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import sharp from "sharp";
 import { formatCollectionNumber, formatRating, HOUSE_PALETTE, type CardData } from "@/lib/card-types";
 import { getEntry } from "@/lib/data";
 import { findMockByImageKey } from "@/lib/mock-catalog";
 import { mockPoster } from "@/lib/mock-poster";
+import { publicFile, toJpeg } from "@/lib/cloudflare";
 import { clip, workFacts } from "@/lib/share";
 
 /**
@@ -15,22 +13,25 @@ import { clip, workFacts } from "@/lib/share";
  */
 export const alt = "Card do Certified Series";
 export const size = { width: 1200, height: 630 };
-// JPEG: a photo poster makes a PNG of ~300 KB, past what WhatsApp shows
+// JPEG: a photo poster makes a PNG of ~300 KB, past what WhatsApp shows.
+// Cloudflare Images converts it (lib/cloudflare); without it the PNG goes out.
 export const contentType = "image/jpeg";
 
-const fontDir = join(process.cwd(), "assets/fonts");
-const fonts = Promise.all([
-  readFile(join(fontDir, "InstrumentSerif-Regular.woff")),
-  readFile(join(fontDir, "InstrumentSerif-Italic.woff")),
-  readFile(join(fontDir, "GeistMono-Regular.woff")),
-]);
+// Loaded per request: on Cloudflare the files come through the ASSETS binding,
+// which only works inside a request
+const loadFonts = () =>
+  Promise.all([
+    publicFile("fonts/InstrumentSerif-Regular.woff"),
+    publicFile("fonts/InstrumentSerif-Italic.woff"),
+    publicFile("fonts/GeistMono-Regular.woff"),
+  ]);
 
 const PAPER = "#f3eee6";
 const GOLD = "#c9b07a";
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [card, [serif, serifItalic, mono]] = await Promise.all([getEntry(id).catch(() => null), fonts]);
+  const [card, [serif, serifItalic, mono]] = await Promise.all([getEntry(id).catch(() => null), loadFonts()]);
   const poster = card ? await posterData(card.posterPath) : null;
   const p = card?.palette ?? HOUSE_PALETTE;
   // Previews are fetched signed out: a private card shows only its work
@@ -109,10 +110,10 @@ export default async function Image({ params }: { params: Promise<{ id: string }
       ],
     },
   );
-  const jpeg = await sharp(Buffer.from(await png.arrayBuffer())).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
-  return new Response(new Uint8Array(jpeg), {
+  const jpeg = await toJpeg(png);
+  return new Response((jpeg ?? png).body, {
     headers: {
-      "Content-Type": contentType,
+      "Content-Type": jpeg ? "image/jpeg" : "image/png",
       // The rating or reflection can change; networks keep their own copy anyway
       "Cache-Control": "public, max-age=3600, s-maxage=3600",
     },
@@ -178,7 +179,8 @@ async function posterData(path: string | null) {
     return m ? `data:image/svg+xml;base64,${Buffer.from(mockPoster(m)).toString("base64")}` : null;
   }
   try {
-    const res = await fetch(`https://image.tmdb.org/t/p/w500${path}`, { next: { revalidate: 60 * 60 * 24 * 30 } });
+    // w342 covers the 314 px it's drawn at, and keeps the PNG small
+    const res = await fetch(`https://image.tmdb.org/t/p/w342${path}`, { next: { revalidate: 60 * 60 * 24 * 30 } });
     if (!res.ok) return null;
     const type = res.headers.get("Content-Type") ?? "image/jpeg";
     return `data:${type};base64,${Buffer.from(await res.arrayBuffer()).toString("base64")}`;

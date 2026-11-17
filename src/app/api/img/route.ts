@@ -23,8 +23,9 @@ export async function GET(req: Request) {
     headers: {
       "Content-Type": upstream.headers.get("Content-Type") ?? "image/jpeg",
       "Cache-Control": "public, max-age=2592000, immutable",
-      // Without this Vercel's CDN doesn't keep the image, so every poster
-      // view ran this function again (and counted against the plan limits).
+      // For a CDN in front of the function (on Vercel, without it every poster
+      // view ran this function again). On Cloudflare the Worker runs before the
+      // cache, so the browser's 30-day copy is what saves requests there.
       "CDN-Cache-Control": "public, max-age=2592000, immutable",
     },
   });

@@ -68,7 +68,7 @@ export default function PrivacyPage() {
       <Section title="Com quem compartilhamos">
         <ul>
           <li>
-            <strong>Vercel</strong> (hospedagem do site) e <strong>Turso</strong> (banco de dados), que processam os
+            <strong>Cloudflare</strong> (hospedagem do site) e <strong>Turso</strong> (banco de dados), que processam os
             dados apenas para fazer o serviço funcionar.
           </li>
           <li>

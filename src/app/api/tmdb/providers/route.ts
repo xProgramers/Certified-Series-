@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     });
   const providers = await getStreamingFor(items);
   return Response.json({ providers }, {
-    // Same for every user, so Vercel's CDN can answer repeats without the function
+    // Same for every user, so a CDN in front can answer repeats without the function
     headers: { "Cache-Control": "public, max-age=3600", "CDN-Cache-Control": "public, max-age=21600" },
   });
 }

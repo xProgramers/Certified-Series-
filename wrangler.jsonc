@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "certified-series",
+  // worker.ts wraps the OpenNext worker and adds the daily cron
+  "main": "worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    // Lets the cron call the site in several short requests (see worker.ts)
+    { "binding": "WORKER_SELF_REFERENCE", "service": "certified-series" }
+  ],
+  // Turns the share preview (opengraph-image) into a JPEG; 5,000 a month are free
+  "images": { "binding": "IMAGES" },
+  // Daily new-episode check, 12:00 UTC (09:00 in Brasília), same as the old Vercel Cron
+  "triggers": { "crons": ["0 12 * * *"] },
+  "observability": { "enabled": true },
+  "placement": { "mode": "smart" }
+}

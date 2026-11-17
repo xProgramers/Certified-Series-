@@ -1,5 +1,5 @@
 /**
- * DATABASE_URL wins; TURSO_DATABASE_URL is what the Turso ↔ Vercel integration sets.
+ * DATABASE_URL wins; TURSO_DATABASE_URL is what Turso's hosting integrations set.
  * Falls back to a local SQLite file for development.
  */
 export function dbUrl() {
