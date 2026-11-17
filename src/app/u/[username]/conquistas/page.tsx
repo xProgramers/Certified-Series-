@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import { AchievementsView, type Tile } from "@/components/achievements/AchievementsView";
 import { ACHIEVEMENTS } from "@/lib/achievements";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { DeleteAccountForm } from "@/components/DeleteAccountForm";
 import { LegalPage, Section } from "@/components/LegalPage";
 import { getCurrentUser } from "@/lib/auth";

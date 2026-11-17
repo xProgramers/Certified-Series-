@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { byMostRecent, formatCollectionNumber, type CardData, type ContentType } from "@/lib/card-types";
 import { ContentCard } from "./card/ContentCard";

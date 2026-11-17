@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useRouter } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { ACHIEVEMENT_BY_KEY, byPrestige, type Earned } from "@/lib/achievements";

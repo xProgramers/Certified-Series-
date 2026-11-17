@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useEffect, useRef, useState } from "react";
 import { titleHref, TYPE_LABEL } from "@/lib/card-types";
 import { posterUrl } from "@/lib/images";

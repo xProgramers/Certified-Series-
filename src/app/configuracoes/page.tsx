@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { logout } from "@/app/actions/auth";
 import { ThemePicker } from "@/components/ThemePicker";
 import { AdPrivacyLink } from "@/components/ads/AdPrivacyLink";

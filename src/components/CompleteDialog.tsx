@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { completeEntry } from "@/app/actions/collection";
 import type { CardPalette } from "@/db/schema";
 import { certificationFor, formatCollectionNumber, TYPE_LABEL, type CardData } from "@/lib/card-types";
-import { posterUrl } from "@/lib/images";
+import { paletteUrl } from "@/lib/images";
 import { extractPalette } from "@/lib/palette";
 import { ContentCard } from "./card/ContentCard";
 import { showReveal } from "./CompletionReveal";
@@ -99,7 +99,7 @@ export function CompleteFlow({ work, owner, entry, nextNumber, viewingNumber, on
   const [pending, start] = useTransition();
 
   useEffect(() => {
-    const src = posterUrl(work.posterPath, "w185");
+    const src = paletteUrl(work.posterPath);
     if (src) extractPalette(src).then(setPalette).catch(() => setPalette(null));
   }, [work.posterPath]);
 

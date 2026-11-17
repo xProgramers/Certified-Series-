@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import { MedalRow } from "@/components/achievements/AchievementsView";
 import { AdBanner } from "@/components/ads/AdBanner";
