@@ -5,7 +5,7 @@ import androidx.activity.EdgeToEdge;
 import com.getcapacitor.BridgeActivity;
 
 /**
- * Loads https://certified-series.vercel.app (capacitor.config.json server.url).
+ * Loads https://certified-series.luan-costa-14.workers.dev (capacitor.config.json server.url).
  * Edge to edge on every Android version, as Android 15+ already forces it; the
  * site pads itself with the safe areas Capacitor's SystemBars injects.
  */

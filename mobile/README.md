@@ -1,6 +1,6 @@
 # App Android (Capacitor)
 
-O app é uma casca nativa que abre **https://certified-series.vercel.app** em tela cheia.
+O app é uma casca nativa que abre **https://certified-series.luan-costa-14.workers.dev** em tela cheia.
 Tudo o que muda no site chega ao app na hora, sem nova versão na Play Store.
 Só mudanças nesta pasta (plugins, ícone, manifesto, SDK) pedem um build novo.
 

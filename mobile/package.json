@@ -2,7 +2,7 @@
   "name": "certified-series-android",
   "version": "1.0.0",
   "private": true,
-  "description": "Capacitor shell that runs https://certified-series.vercel.app as the Android app",
+  "description": "Capacitor shell that runs https://certified-series.luan-costa-14.workers.dev as the Android app",
   "scripts": {
     "sync": "cap sync android",
     "open": "cap open android"

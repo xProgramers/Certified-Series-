@@ -3,7 +3,7 @@
   "appName": "Certified Series",
   "webDir": "www",
   "server": {
-    "url": "https://certified-series.vercel.app",
+    "url": "https://certified-series.luan-costa-14.workers.dev",
     "errorPath": "offline.html"
   },
   "android": {

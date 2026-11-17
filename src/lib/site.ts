@@ -12,5 +12,5 @@ export function mailto(subject: string) {
  * Public address of the site, for the absolute URLs social previews need.
  * NEXT_PUBLIC_SITE_URL overrides it (a custom domain).
  */
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://certified-series.vercel.app").replace(/\/$/, "");
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://certified-series.luan-costa-14.workers.dev").replace(/\/$/, "");
 
